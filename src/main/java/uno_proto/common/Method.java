@@ -4,7 +4,8 @@ public enum Method {
 
     // LOBBY
     CREATE_ROOM,
-    ROOM_CREATED,
+    ROOM_CREATED_SUCCESS,
+    ROOM_CREATED_ERROR,
     GET_ROOMS,
     ROOMS_LIST,
     JOIN_ROOM,
