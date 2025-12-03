@@ -1,3 +1,5 @@
+package uno_proto
+
 data class NetworkMessage(
     val id: Long, // id-шник сообщения
     val method: Method, // один из поддерживаемых методов
