@@ -1,9 +1,6 @@
-import tornadofx.App
-import tornadofx.launch
+import javafx.application.Application
 import view.MainMenuView
 
-class MyApp : App(MainMenuView::class)
-
 fun main() {
-    launch<MyApp>()
+    Application.launch(MainMenuView::class.java)
 }
