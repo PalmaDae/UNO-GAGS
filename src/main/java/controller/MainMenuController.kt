@@ -8,7 +8,7 @@ import view.CreateView
 class MainMenuController(private val stage: Stage) {
     fun createButton() {
         val createView = CreateView(stage)
-//        stage.scene = createView.scene;
+        stage.scene = createView.scene;
     }
 
     fun joinButton() {
