@@ -31,7 +31,9 @@ data class PlayCardRequest(
     val chosenColor: CardColor? = null // Для WILD карт
 ) : Payload
 
-data class ChatMessage(
+data class ChatMessage
+@JvmOverloads
+constructor(
     val senderId: Long,
     val senderName: String,
     val content: String,
