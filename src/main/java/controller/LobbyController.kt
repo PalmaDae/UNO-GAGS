@@ -15,4 +15,8 @@ class LobbyController(private val stage: Stage) {
     fun copyPassword() {
 
     }
+
+    fun deleteLobby() {
+
+    }
 }
