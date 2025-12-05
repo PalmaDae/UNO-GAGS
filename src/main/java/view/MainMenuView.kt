@@ -1,16 +1,16 @@
 package view
 
-import javafx.scene.Parent
+import javafx.geometry.Pos
 import tornadofx.*;
 
-class MainMenuView : View("UNO") {
+class MainMenuView : View("Main menu") {
     val btnWidth = 200.0
 
-    override val root = vbox {
+    override val root = vbox() {
         spacing = 12.0
         paddingAll = 18.0;
 
-        alignment
+        alignment = Pos.CENTER
 
         button("Create") {
             prefWidth = btnWidth;
