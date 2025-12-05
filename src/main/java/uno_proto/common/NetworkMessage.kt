@@ -1,6 +1,8 @@
 package uno_proto.common
 
-data class NetworkMessage(
+data class NetworkMessage
+@JvmOverloads
+constructor (
     val id: Long, // id-шник сообщения,
     val version: Version, // версия протокола
     val method: Method, // один из поддерживаемых методов

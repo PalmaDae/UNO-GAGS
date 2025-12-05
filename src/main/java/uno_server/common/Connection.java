@@ -1,5 +1,6 @@
 package uno_server.common;
 
+import uno_proto.common.NetworkMessage;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
@@ -13,14 +14,14 @@ public class Connection implements Closeable {
     private final Socket socket;
     private final int clientId;
     private static final int SOCKET_TIMEOUT_MS = 30000;
-    private static final int BUFFER_SIZE = 8192;
 
-    private BufferedReader reader;
-    private BufferedWriter writer;
+    // Используем Object-потоки для сериализации объектов
+    private ObjectInputStream objectInputStream;
+    private ObjectOutputStream objectOutputStream;
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
-    // Очередь для асинхронной отправки сообщений
-    private final BlockingQueue<String> sendQueue = new LinkedBlockingQueue<>();
+    // Очередь NetworkMessage
+    private final BlockingQueue<NetworkMessage> sendQueue = new LinkedBlockingQueue<>();
     private Thread sendThread;
 
     public Connection(Socket socket, int clientId) throws IOException {
@@ -39,25 +40,25 @@ public class Connection implements Closeable {
         socket.setKeepAlive(true);
         socket.setTcpNoDelay(true);
 
-        InputStream inputStream = socket.getInputStream();
         OutputStream outputStream = socket.getOutputStream();
+        objectOutputStream = new ObjectOutputStream(outputStream);
+        objectOutputStream.flush(); // Отправляем заголовок
 
-        reader = new BufferedReader(new InputStreamReader(inputStream));
-        writer = new BufferedWriter(new OutputStreamWriter(outputStream));
+        InputStream inputStream = socket.getInputStream();
+        objectInputStream = new ObjectInputStream(inputStream);
     }
 
     private void startSendThread() {
         sendThread = new Thread(() -> {
             while (!isClosed.get() && socket.isConnected()) {
                 try {
-                    String message = sendQueue.take(); // Блокируется, пока нет сообщений
-                    internalSend(message);
+                    NetworkMessage message = sendQueue.take();
+                    sendObjectInternal(message);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
-                } catch (IOException e) {
-                    System.err.println("Ошибка отправки сообщения клиенту #" + clientId +
-                            ": " + e.getMessage());
+                } catch (Exception e) {
+                    System.err.println("Ошибка отправки сообщения клиенту #" + clientId);
                     break;
                 }
             }
@@ -67,45 +68,44 @@ public class Connection implements Closeable {
         sendThread.start();
     }
 
-    // Синхронное чтение сообщения
-    public String readMessage() throws IOException {
+    public NetworkMessage readNetworkMessage() throws IOException {
         if (isClosed.get()) {
             throw new IOException("Connection closed");
         }
 
         try {
-            return reader.readLine();
+            Object obj = objectInputStream.readObject();
+            if (obj instanceof NetworkMessage) {
+                return (NetworkMessage) obj;
+            }
+            return null;
         } catch (SocketTimeoutException e) {
-            // Таймаут - нормальная ситуация
+            // Таймаут - нормальная ситуация, клиент может просто не отправлять данные
             return null;
         } catch (SocketException e) {
             if (!isClosed.get()) {
                 System.err.println("Сокет исключение при чтении: " + e.getMessage());
             }
             throw new IOException("Connection lost", e);
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Неизвестный класс при десериализации", e);
+        } catch (EOFException e) {
+            // Клиент закрыл соединение
+            return null;
         }
     }
 
-    // Асинхронная отправка (добавляет в очередь)
-    public void sendMessageAsync(String message) {
+    public void sendNetworkMessageAsync(NetworkMessage message) {
         if (!isClosed.get() && socket.isConnected()) {
             sendQueue.offer(message);
         }
     }
 
-    // Синхронная отправка
-    public void sendMessage(String message) throws IOException {
-        if (isClosed.get()) {
-            throw new IOException("Connection closed");
-        }
-        internalSend(message);
-    }
-
-    private synchronized void internalSend(String message) throws IOException {
+    // Внутренний метод отправки объекта (синхронизирован для безопасности)
+    private synchronized void sendObjectInternal(Object obj) throws IOException {
         try {
-            writer.write(message);
-            writer.newLine();
-            writer.flush();
+            objectOutputStream.writeObject(obj);
+            objectOutputStream.flush();
         } catch (SocketException e) {
             throw new IOException("Connection lost", e);
         }
@@ -135,10 +135,10 @@ public class Connection implements Closeable {
                 sendThread.interrupt();
             }
 
-            // Закрываем ресурсы
+            // Закрываем ресурсы в правильном порядке
             try {
-                if (writer != null) writer.close();
-                if (reader != null) reader.close();
+                if (objectInputStream != null) objectInputStream.close();
+                if (objectOutputStream != null) objectOutputStream.close();
                 if (!socket.isClosed()) socket.close();
 
                 System.out.println("Соединение #" + clientId + " закрыто: " +

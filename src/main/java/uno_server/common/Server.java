@@ -1,5 +1,7 @@
 package uno_server.common;
 
+import uno_proto.common.NetworkMessage;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -20,13 +22,14 @@ public class Server implements Closeable, Runnable {
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private ServerSocket serverSocket;
     private final List<Connection> connections = new CopyOnWriteArrayList<Connection>();
-    // Управление пулом потоков. ExecutorService исполняет асинхронный код в одном или нескольких потоках.
     private final ExecutorService clientThreadPool;
     private final ExecutorService serverThread;
-    // ExecutorService - продвинутая замена Thread. Управляет потоками автоматически.
     private final AtomicInteger clientCounter = new AtomicInteger(0);
-    // Коллбек для обработки новых подключений. Он и отвечает за реализацию обработки подключений
+
+    // Обработчик новых подключений
     private Consumer<Connection> connectionHandler;
+    // Обработчик полученных сообщений
+    private Consumer<MessageReceivedEvent> messageHandler;
 
     public Server() {
         this(DEFAULT_PORT);
@@ -34,14 +37,17 @@ public class Server implements Closeable, Runnable {
 
     public Server(int port) {
         this.port = port;
-        // Создаём пул с десятью потоками
+        // CachedThreadPool автоматически создает потоки по мере необходимости
         this.clientThreadPool = Executors.newCachedThreadPool();
-        // Создаём пул, который автоматически будет создавать, удалять и переиспользовать потоки
         this.serverThread = Executors.newSingleThreadExecutor();
     }
 
     public void setConnectionHandler(Consumer<Connection> connectionHandler) {
         this.connectionHandler = connectionHandler;
+    }
+
+    public void setMessageHandler(Consumer<MessageReceivedEvent> messageHandler) {
+        this.messageHandler = messageHandler;
     }
 
     public void start() {
@@ -85,13 +91,14 @@ public class Server implements Closeable, Runnable {
                         if (connectionHandler != null) {
                             connectionHandler.accept(connection); // Вызываем внешний обработчик
                         }
-                        handleClientConnection(connection); // Основная работа с клиентом
+                        handleClientConnection(connection);
                     } catch (Exception e) {
                         System.err.println("Ошибка обработки клиента #" + clientId +
                                 ": " + e.getMessage());
                     } finally {
                         connections.remove(connection);
                         connection.close();
+                        System.out.println("Клиент #" + clientId + " отключился");
                     }
                 });
 
@@ -105,22 +112,22 @@ public class Server implements Closeable, Runnable {
     }
 
     private void handleClientConnection(Connection connection) {
-        // Здесь будет основная логика обработки клиента
         System.out.println("Обработка клиента #" + connection.getClientId());
 
-        // Пример: чтение данных от клиента
         while (connection.isConnected() && isRunning.get()) {
             try {
-                String message = connection.readMessage();
+                NetworkMessage message = connection.readNetworkMessage();
                 if (message == null) {
                     break; // Клиент отключился
                 }
 
-                System.out.println("Получено от клиента #" + connection.getClientId() +
-                        ": " + message);
+                System.out.println("Получено сообщение от клиента #" + connection.getClientId() +
+                        ": метод=" + message.getMethod());
 
-                // Эхо1-ответ
-                connection.sendMessage("ECHO: " + message);
+                // Отправляем событие обработчику сообщений
+                if (messageHandler != null) {
+                    messageHandler.accept(new MessageReceivedEvent(connection, message));
+                }
 
             } catch (IOException e) {
                 System.err.println("Ошибка чтения от клиента #" + connection.getClientId() +
@@ -128,21 +135,6 @@ public class Server implements Closeable, Runnable {
                 break;
             }
         }
-
-        System.out.println("Клиент #" + connection.getClientId() + " отключился");
-    }
-
-    public void broadcastMessage(String message) {
-        connections.forEach(connection -> {
-            try {
-                if (connection.isConnected()) {
-                    connection.sendMessage(message);
-                }
-            } catch (IOException e) {
-                System.err.println("Ошибка отправки сообщения клиенту #" +
-                        connection.getClientId());
-            }
-        });
     }
 
     public int getActiveConnectionsCount() {
@@ -151,6 +143,16 @@ public class Server implements Closeable, Runnable {
 
     public boolean isRunning() {
         return isRunning.get();
+    }
+
+    // Получение соединения по ID клиента
+    public Connection getConnection(int clientId) {
+        for (Connection connection : connections) {
+            if (connection.getClientId() == clientId) {
+                return connection;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -175,5 +177,20 @@ public class Server implements Closeable, Runnable {
         }
 
         System.out.println("Сервер остановлен");
+    }
+
+    // Событие получения сообщения
+    public static class MessageReceivedEvent {
+        private final Connection connection;
+        private final NetworkMessage message;
+
+        public MessageReceivedEvent(Connection connection, NetworkMessage message) {
+            this.connection = connection;
+            this.message = message;
+        }
+
+        public Connection getConnection() { return connection; }
+        public NetworkMessage getMessage() { return message; }
+        public int getClientId() { return connection.getClientId(); }
     }
 }

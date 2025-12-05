@@ -1,5 +1,7 @@
 package uno_server.common;
 
+import uno_proto.common.NetworkMessage;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,19 +31,31 @@ public class ConnectionManager {
         return clientUsernames.get(clientId);
     }
 
-    public void sendToClient(int clientId, String message) {
+    // Отправка NetworkMessage конкретному клиенту
+    public void sendToClient(int clientId, NetworkMessage message) {
         Connection connection = connections.get(clientId);
         if (connection != null && connection.isConnected()) {
             try {
-                connection.sendMessageAsync(message);
+                connection.sendNetworkMessageAsync(message);
             } catch (Exception e) {
                 System.err.println("Ошибка отправки клиенту #" + clientId);
             }
         }
     }
 
+    // Отправка NetworkMessage нескольким клиентам
+    public void sendToClients(List<Integer> clientIds, NetworkMessage message) {
+        for (Integer clientId : clientIds) {
+            sendToClient(clientId, message);
+        }
+    }
+
     public List<Integer> getConnectedClientIds() {
         return new ArrayList<>(connections.keySet());
+    }
+
+    public List<Connection> getConnections() {
+        return new ArrayList<>(connections.values());
     }
 
     public int getConnectionCount() {
