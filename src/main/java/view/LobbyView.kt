@@ -1,4 +1,11 @@
 package view
 
-class LobbyView {
+import javafx.stage.Stage
+
+class LobbyView(private val stage: Stage) {
+
+
+    init {
+
+    }
 }
