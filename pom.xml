@@ -94,6 +94,43 @@
                 <configuration>
                     <mainClass>uno_server.game.UnoGameDemo</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-cli</id>
+                        <configuration>
+                            <mainClass>uno_server.game.UnoGameDemo</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>run-ui</id>
+                        <configuration>
+                            <mainClass>uno_ui.MainApp</mainClass>
+                            <arguments>
+                                <argument>--module-path</argument>
+                                <argument>${project.build.directory}/dependency</argument>
+                                <argument>--add-modules</argument>
+                                <argument>javafx.controls,javafx.fxml</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>uno_ui.MainApp</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- Default configuration for running with: mvn javafx:run -->
+                        <id>default-cli</id>
+                        <configuration>
+                            <mainClass>uno_ui.MainApp</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
@@ -120,12 +157,12 @@
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
-            <version>11.0.2</version>
+            <version>21.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
-            <version>11.0.2</version>
+            <version>21.0.1</version>
         </dependency>
     </dependencies>
 
