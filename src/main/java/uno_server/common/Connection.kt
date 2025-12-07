@@ -10,10 +10,12 @@ import java.util.logging.Logger
 /**
  * Класс Connection представляет собой обёртку над сокетом клиента.
  * Предоставляет удобные методы для чтения и отправки строк текста.
- * Автоматически устанавливает таймаут 30 секунд для операций чтения.
+ * Автоматически устанавливает таймаут для операций чтения.
  */
-class Connection(private val socket: Socket?) : Closeable {
-    private val socketTimeoutMs = 30000 // 30 секунд таймаут
+class Connection @JvmOverloads constructor(
+    private val socket: Socket?,
+    private val socketTimeoutMs: Int = 120000 // 120 секунд таймаут по умолчанию
+) : Closeable {
     private var inputStream: InputStreamReader? = null
     private var outputStream: OutputStreamWriter? = null
     private var reader: BufferedReader? = null

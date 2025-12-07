@@ -7,11 +7,13 @@ import java.net.Socket
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicLong
 import java.util.function.Consumer
 
 /**
  * Handles TCP socket communication with the server.
  * Sends and receives NetworkMessage objects.
+ * Includes heartbeat mechanism to keep connection alive.
  */
 class NetworkClient(
     private val host: String = "localhost",
@@ -27,11 +29,23 @@ class NetworkClient(
     private var messageListener: Consumer<NetworkMessage>? = null
     private var senderThread: Thread? = null
     private var receiverThread: Thread? = null
+    private var heartbeatThread: Thread? = null
     
     @Volatile
     private var running = false
     
+    @Volatile
+    private var lastPongTime = AtomicLong(System.currentTimeMillis())
+    
+    @Volatile
+    private var lastPingSentTime = AtomicLong(0L)
+    
     private var messageIdCounter = 1L
+    
+    companion object {
+        private const val HEARTBEAT_INTERVAL_MS = 30000L // 30 seconds
+        private const val PONG_TIMEOUT_MS = 10000L // 10 seconds
+    }
 
     fun setMessageListener(listener: (NetworkMessage) -> Unit) {
         messageListener = Consumer(listener)
@@ -47,8 +61,12 @@ class NetworkClient(
             println("[NetworkClient] Connected!")
             
             running = true
+            lastPongTime.set(System.currentTimeMillis())
+            lastPingSentTime.set(0L)
+            
             startSenderThread()
             startReceiverThread()
+            startHeartbeatThread()
             
             true
         } catch (e: IOException) {
@@ -71,6 +89,9 @@ class NetworkClient(
             it.join(1000)
         }
         receiverThread?.let {
+            it.join(1000)
+        }
+        heartbeatThread?.let {
             it.join(1000)
         }
         
@@ -131,7 +152,15 @@ class NetworkClient(
                     println("[Receiver] Received: $line")
                     
                     val message = serializer.deserialize(line)
-                    message?.let { messageListener?.accept(it) }
+                    message?.let { 
+                        // Handle PONG internally for heartbeat
+                        if (it.method == Method.PONG) {
+                            lastPongTime.set(System.currentTimeMillis())
+                            println("[Heartbeat] PONG received")
+                        }
+                        // Notify listener for all messages (including PONG if they want to handle it)
+                        messageListener?.accept(it) 
+                    }
                     
                 } catch (e: IOException) {
                     if (running) {
@@ -149,6 +178,61 @@ class NetworkClient(
             isDaemon = true
             start()
         }
+    }
+
+    private fun startHeartbeatThread() {
+        heartbeatThread = Thread({
+            println("[Heartbeat] Thread started")
+            
+            while (running) {
+                try {
+                    Thread.sleep(HEARTBEAT_INTERVAL_MS)
+                    
+                    if (!running) break
+                    
+                    // Send PING
+                    println("[Heartbeat] Sending PING...")
+                    lastPingSentTime.set(System.currentTimeMillis())
+                    sendMessage(Method.PING, MessageParser.EmptyPayload)
+                    
+                    // Wait a bit to allow PONG to arrive
+                    Thread.sleep(PONG_TIMEOUT_MS)
+                    
+                    if (!running) break
+                    
+                    // Check if we received PONG in time
+                    val timeSinceLastPong = System.currentTimeMillis() - lastPongTime.get()
+                    val timeSincePing = System.currentTimeMillis() - lastPingSentTime.get()
+                    
+                    if (timeSincePing < PONG_TIMEOUT_MS + 1000) {
+                        // We just sent a ping, check if we got a pong
+                        if (timeSinceLastPong > HEARTBEAT_INTERVAL_MS + PONG_TIMEOUT_MS) {
+                            System.err.println("[Heartbeat] No PONG received in ${PONG_TIMEOUT_MS}ms, reconnecting...")
+                            reconnect()
+                            break
+                        }
+                    }
+                    
+                } catch (e: InterruptedException) {
+                    break
+                } catch (e: Exception) {
+                    System.err.println("[Heartbeat] Error: ${e.message}")
+                    e.printStackTrace()
+                }
+            }
+            
+            println("[Heartbeat] Thread stopped")
+        }, "NetworkClient-Heartbeat").apply {
+            isDaemon = true
+            start()
+        }
+    }
+    
+    private fun reconnect() {
+        println("[NetworkClient] Attempting to reconnect...")
+        disconnect()
+        Thread.sleep(1000) // Wait a bit before reconnecting
+        connect()
     }
 
     fun isConnected(): Boolean = socket?.let { !it.isClosed && running } ?: false

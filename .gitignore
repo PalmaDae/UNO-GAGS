@@ -42,4 +42,7 @@ UNO-PROTO/notice.txt
 
 # Test/log files
 server_test.log
+client_test.log
+server.log
+client.log
 cp.txt
