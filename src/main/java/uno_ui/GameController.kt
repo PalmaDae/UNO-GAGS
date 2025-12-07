@@ -21,6 +21,7 @@ class GameController {
 
     init {
         networkClient.setMessageListener(::handleMessage)
+        networkClient.setTextMessageListener(::handleTextMessage)
     }
 
     fun setOnStateChanged(callback: Runnable?) {
@@ -85,8 +86,10 @@ class GameController {
 
     // Chat operations
     fun sendChat(text: String) {
-        val msg = ChatMessage(0L, "Me", text, ChatMessageType.TEXT, null, System.currentTimeMillis())
-        networkClient.sendMessage(Method.GAME_CHAT, msg)
+        // Используем простой текстовый протокол: CHAT_MESSAGE|playerName|text
+        val playerName = playerModel.username.ifEmpty { "Player${playerModel.playerId ?: ""}" }
+        val message = "CHAT_MESSAGE|$playerName|$text"
+        networkClient.sendTextMessage(message)
     }
 
     // Message handling
@@ -144,6 +147,30 @@ class GameController {
 
     private fun handleError(error: uno_server.protocol.MessageParser.ErrorPayload) {
         System.err.println("[GameController] Error from server: ${error.message}")
+    }
+    
+    private fun handleTextMessage(text: String) {
+        println("[GameController] Handling text message: $text")
+        
+        // Парсим формат: CHAT_MESSAGE|playerName|text
+        val parts = text.split("|", limit = 3)
+        if (parts.size >= 3 && parts[0] == "CHAT_MESSAGE") {
+            val playerName = parts[1]
+            val messageText = parts[2]
+            
+            // Создаём ChatMessage объект для модели чата
+            val chatMessage = ChatMessage(
+                0L, 
+                playerName, 
+                messageText, 
+                ChatMessageType.TEXT, 
+                null, 
+                System.currentTimeMillis()
+            )
+            
+            chatModel.addMessage(chatMessage)
+            notifyChatMessage()
+        }
     }
 
     private fun notifyStateChanged() {

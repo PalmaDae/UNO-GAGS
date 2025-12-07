@@ -22,10 +22,17 @@ class MessageRouter {
     private val roomManager = RoomManager(connectionManager, messageSender)
     private val gameHandler = GameHandler(connectionManager, roomManager, messageSender, gameManager)
     private val chatHandler = ChatHandler(connectionManager, roomManager, messageSender)
+    private val simpleChatHandler = SimpleChatHandler(connectionManager, roomManager)
     private val pingHandler = PingHandler(messageSender)
 
     fun routeMessage(connection: Connection, rawMessage: String) {
         try {
+            // Проверяем, не простое ли это текстовое сообщение чата
+            if (rawMessage.startsWith("CHAT_MESSAGE|")) {
+                simpleChatHandler.handleSimpleChatMessage(connection, rawMessage)
+                return
+            }
+            
             val message = parser.fromJson(rawMessage) ?: return
             logger.log(Level.INFO, "Received message: ${message.method} from ${connection.remoteAddress}")
 

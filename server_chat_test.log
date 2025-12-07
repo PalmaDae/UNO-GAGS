@@ -1,0 +1,74 @@
+Dec 07, 2025 4:31:41 PM uno_server.ServerLauncher main
+INFO: Starting UNO server...
+Dec 07, 2025 4:31:41 PM uno_server.ServerLauncher main
+INFO: Press Ctrl+C to stop the server
+Dec 07, 2025 4:31:41 PM uno_server.common.Server <init>
+INFO: Server socket created on port 9090
+Dec 07, 2025 4:31:41 PM uno_server.common.Server handle
+INFO: Server started on port 9090
+Dec 07, 2025 4:31:44 PM uno_server.common.Connection initialize
+INFO: Connection initialized for /127.0.0.1:40396
+Dec 07, 2025 4:31:44 PM uno_server.common.Server handle
+INFO: Client #1 connected from /127.0.0.1:40396
+Dec 07, 2025 4:31:44 PM uno_server.common.Connection initialize
+INFO: Connection initialized for /127.0.0.1:40398
+Dec 07, 2025 4:31:44 PM uno_server.common.Server handle
+INFO: Client #2 connected from /127.0.0.1:40398
+Dec 07, 2025 4:31:45 PM uno_server.common.Server processClient
+INFO: Message from client #1: {"id":1,"version":"V1","method":"CREATE_ROOM","payload":{"roomName":"TestRoom","maxPlayers":4,"allowStuck":false},"timestamp":1765125105017}
+Dec 07, 2025 4:31:45 PM uno_server.protocol.MessageRouter routeMessage
+INFO: Received message: CREATE_ROOM from /127.0.0.1:40396
+Dec 07, 2025 4:31:45 PM uno_server.protocol.RoomManager handleCreateRoom
+INFO: Room created: 1 by user 1
+Dec 07, 2025 4:31:45 PM uno_server.common.Server processClient
+INFO: Message from client #2: {"id":2,"version":"V1","method":"JOIN_ROOM","payload":{"roomId":1},"timestamp":1765125105560}
+Dec 07, 2025 4:31:45 PM uno_server.protocol.MessageRouter routeMessage
+INFO: Received message: JOIN_ROOM from /127.0.0.1:40398
+Dec 07, 2025 4:31:45 PM uno_server.protocol.RoomManager handleJoinRoom
+INFO: User 2 joined room 1
+Dec 07, 2025 4:31:46 PM uno_server.common.Server processClient
+INFO: Message from client #1: CHAT_MESSAGE|Client1|Привет от Client 1!
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Chat from Client1: Привет от Client 1!
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Broadcast chat to 2 players in room 1
+Dec 07, 2025 4:31:46 PM uno_server.common.Server processClient
+INFO: Message from client #2: CHAT_MESSAGE|Client2|Привет от Client 2!
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Chat from Client2: Привет от Client 2!
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Broadcast chat to 2 players in room 1
+Dec 07, 2025 4:31:46 PM uno_server.common.Server processClient
+INFO: Message from client #1: CHAT_MESSAGE|Client1|Как дела?
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Chat from Client1: Как дела?
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Broadcast chat to 2 players in room 1
+Dec 07, 2025 4:31:46 PM uno_server.common.Server processClient
+INFO: Message from client #2: CHAT_MESSAGE|Client2|Отлично! А у тебя?
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Chat from Client2: Отлично! А у тебя?
+Dec 07, 2025 4:31:46 PM uno_server.protocol.SimpleChatHandler handleSimpleChatMessage
+INFO: Broadcast chat to 2 players in room 1
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection readLine
+INFO: Connection closed by /127.0.0.1:40396
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection readLine
+INFO: Connection closed by /127.0.0.1:40398
+Dec 07, 2025 4:31:47 PM uno_server.protocol.MessageRouter handleDisconnect
+INFO: User 1 disconnected and cleaned up
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection close
+INFO: Closing connection for /127.0.0.1:40396
+Dec 07, 2025 4:31:47 PM uno_server.protocol.MessageRouter handleDisconnect
+INFO: User 2 disconnected and cleaned up
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection close
+INFO: Closing connection for /127.0.0.1:40398
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection close
+INFO: All resources for /127.0.0.1:40396 are closed
+Dec 07, 2025 4:31:47 PM uno_server.common.Server processClient
+INFO: Client #1 disconnected
+Dec 07, 2025 4:31:47 PM uno_server.common.Connection close
+INFO: All resources for /127.0.0.1:40398 are closed
+Dec 07, 2025 4:31:47 PM uno_server.common.Server processClient
+INFO: Client #2 disconnected
+Dec 07, 2025 4:31:49 PM uno_server.ServerLauncher lambda$main$0
+INFO: Shutdown hook triggered. Closing server...

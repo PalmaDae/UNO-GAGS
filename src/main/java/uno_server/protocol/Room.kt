@@ -27,7 +27,7 @@ class Room(
         get() = players.size >= maxPlayers
 
     fun addPlayer(player: PlayerConnection?): Boolean {
-        require(players.size < maxPlayers) {
+        if (players.size < maxPlayers) {
             players += player
             return true
         }
