@@ -27,6 +27,7 @@ class NetworkClient(
     private val outgoingMessages: BlockingQueue<NetworkMessage> = LinkedBlockingQueue()
     
     private var messageListener: Consumer<NetworkMessage>? = null
+    private var textMessageListener: Consumer<String>? = null
     private var senderThread: Thread? = null
     private var receiverThread: Thread? = null
     private var heartbeatThread: Thread? = null
@@ -49,6 +50,10 @@ class NetworkClient(
 
     fun setMessageListener(listener: (NetworkMessage) -> Unit) {
         messageListener = Consumer(listener)
+    }
+    
+    fun setTextMessageListener(listener: (String) -> Unit) {
+        textMessageListener = Consumer(listener)
     }
 
     fun connect(): Boolean {
@@ -108,6 +113,18 @@ class NetworkClient(
         )
         outgoingMessages.offer(message)
     }
+    
+    /**
+     * Отправляет простое текстовое сообщение (для CHAT_MESSAGE)
+     */
+    fun sendTextMessage(text: String) {
+        try {
+            println("[NetworkClient] Sending text: $text")
+            out?.println(text)
+        } catch (e: Exception) {
+            System.err.println("[NetworkClient] Error sending text message: ${e.message}")
+        }
+    }
 
     private fun startSenderThread() {
         senderThread = Thread({
@@ -150,6 +167,12 @@ class NetworkClient(
                     }
                     
                     println("[Receiver] Received: $line")
+                    
+                    // Проверяем, не простое ли это текстовое сообщение
+                    if (line.startsWith("CHAT_MESSAGE|")) {
+                        textMessageListener?.accept(line)
+                        continue
+                    }
                     
                     val message = serializer.deserialize(line)
                     message?.let { 
