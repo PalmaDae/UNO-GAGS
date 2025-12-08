@@ -28,6 +28,7 @@ class MainMenuView(private val stage: Stage) {
         root.style = "-fx.padding: 24;"
 
         scene = Scene(root, 400.0, 600.0)
+        scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
 
         stage.scene = scene;
         stage.title = "Main Menu"
