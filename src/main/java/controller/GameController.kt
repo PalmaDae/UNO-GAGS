@@ -19,11 +19,11 @@ class GameController(private val stage: Stage) {
 
         players.add(player)
 
-        openLobby()
+        createLobby()
     }
 
-    fun openLobby() {
-        val lobbyView = LobbyView(stage, players);
-        stage.scene = lobbyView.scene;
+    fun createLobby() {
+        val createView = CreateView(stage);
+        stage.scene = createView.scene;
     }
 }

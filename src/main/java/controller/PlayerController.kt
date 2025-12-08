@@ -3,6 +3,7 @@ package controller
 import javafx.stage.Stage
 import view.CreateView
 import view.MainMenuView
+import view.PlayerView
 
 class PlayerController(private val stage: Stage) {
     fun backButton() {
@@ -11,7 +12,7 @@ class PlayerController(private val stage: Stage) {
     }
 
     fun createPlayer() {
-        val createLobbyView = CreateView(stage);
-        stage.scene = createLobbyView.scene;
+        val playerView = PlayerView(stage);
+        stage.scene = playerView.scene;
     }
 }
