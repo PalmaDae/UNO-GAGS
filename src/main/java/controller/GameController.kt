@@ -2,7 +2,6 @@ package controller
 
 import enity.Player
 import javafx.stage.Stage
-import view.CreateLobbyView
 import view.CreateView
 import view.LobbyView
 
