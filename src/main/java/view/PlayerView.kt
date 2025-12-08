@@ -1,6 +1,5 @@
 package view
 
-import controller.CreateController
 import controller.GameController
 import controller.PlayerController
 import javafx.geometry.Pos
@@ -13,6 +12,7 @@ import javafx.scene.layout.VBox
 import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
+import config.StageConfig
 
 class PlayerView(private val stage: Stage) {
     private val playerController = PlayerController(stage)
@@ -54,7 +54,7 @@ class PlayerView(private val stage: Stage) {
             style = "-fx-padding: 24;"
         }
 
-        scene = Scene(root, 400.0, 600.0)
+        scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
     }
 
