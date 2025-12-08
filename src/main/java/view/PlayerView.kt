@@ -43,7 +43,7 @@ class PlayerView(private val stage: Stage) {
             val avatar = selectedAvatar?.id ?: "default"
 
             gameController.createPlayer(name,avatar)
-            gameController.openLobby();
+            gameController.createLobby();
 
         } }
 
