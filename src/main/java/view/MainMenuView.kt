@@ -6,6 +6,7 @@ import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
+import config.StageConfig
 
 class MainMenuView(private val stage: Stage) {
     private val controller = MainMenuController(stage)
@@ -27,7 +28,7 @@ class MainMenuView(private val stage: Stage) {
 
         root.style = "-fx.padding: 24;"
 
-        scene = Scene(root, 400.0, 600.0)
+        scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
 
         stage.scene = scene;
