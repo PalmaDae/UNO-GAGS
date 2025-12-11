@@ -19,7 +19,7 @@ class GameView(private val stage: Stage) {
 
     init {
         val centerCard = ImageView(
-            Image(javaClass.getResource("/images/cards/red/red_5.png").toExternalForm())
+            Image(javaClass.getResource("/images/cards/red/5.png").toExternalForm())
         ).apply {
             fitWidth = 200.0
             fitHeight = 300.0
@@ -34,7 +34,7 @@ class GameView(private val stage: Stage) {
 
         repeat(6) { index ->
             val cardImg = ImageView(
-                Image(javaClass.getResource("/images/cards/blue/blue_$index.png").toExternalForm())
+                Image(javaClass.getResource("/images/cards/blue/$index.png").toExternalForm())
             ).apply {
                 fitWidth = 90.0
                 fitHeight = 135.0
