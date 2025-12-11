@@ -23,7 +23,14 @@ class PlayerView(private val stage: Stage) {
     val toggleGroup = ToggleGroup()
 
     init {
-        val nameField = TextField().apply { promptText = "Place your name here" }
+        val nameField = TextField().apply {
+            promptText = "Place your name here"
+            prefWidth = 220.0
+            maxWidth = 220.0
+            minWidth = 220.0
+            styleClass.add("uno-input")
+        }
+
 
         val testAvatar1 = Rectangle(50.0, 50.0, Color.BLUE)
         val testAvatar2 = Rectangle(50.0, 50.0, Color.RED)

@@ -15,8 +15,18 @@ class LobbyController(private val stage: Stage) {
         stage.scene = gameView.scene;
     }
 
-    fun copyPassword() {
+    fun generatePassword(): String {
+        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return (1..5)
+            .map { chars.random() }
+            .joinToString("")
+    }
 
+    fun copyPassword(password: String) {
+        val clipboard = javafx.scene.input.Clipboard.getSystemClipboard()
+        val content = javafx.scene.input.ClipboardContent()
+        content.putString(password)
+        clipboard.setContent(content)
     }
 
     fun deleteLobby() {
