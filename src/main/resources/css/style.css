@@ -69,3 +69,29 @@
     -fx-background-insets: 3;
     -fx-background-radius: 3;
 }
+
+/* Минималистичное фиолетовое поле, как в Гартик Фон */
+.uno-input {
+    -fx-background-color: #1e0f2e;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #7a3cff;
+    -fx-border-width: 2;
+
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: center;
+
+    -fx-padding: 8 14;
+}
+
+/* Эффект при фокусе */
+.uno-input:focused {
+    -fx-border-color: #a470ff;
+    -fx-background-color: #241236;
+}
+
+.uno-input .text-field:prompt-text,
+.uno-input:focused .text-field:prompt-text {
+    -fx-text-fill: rgba(255,255,255,0.35);
+}
