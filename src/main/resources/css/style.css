@@ -1,0 +1,97 @@
+/* Общие стили для фона и контейнеров */
+.root {
+    -fx-background-color: linear-gradient(to bottom, #2b1055, #7597de);
+    -fx-font-family: "Segoe UI", sans-serif;
+}
+
+/* VBox с отступами и выравниванием */
+.vbox {
+    -fx-padding: 24;
+    -fx-spacing: 16;
+    -fx-alignment: center;
+}
+
+/* Кнопки */
+.button {
+    -fx-background-color: #7f3ff2;
+    -fx-text-fill: white;
+    -fx-font-size: 16px;
+    -fx-background-radius: 12;
+    -fx-cursor: hand;
+    -fx-pref-width: 200px;
+    -fx-pref-height: 50px;
+    -fx-effect: dropshadow(two-pass-box, rgba(0,0,0,0.2), 5, 0, 0, 2);
+}
+
+/* Кнопка при наведении */
+.button:hover {
+    -fx-background-color: #a75fff;
+}
+
+/* Кнопка при нажатии */
+.button:pressed {
+    -fx-background-color: #5a1dd1;
+}
+
+/* Лейблы заголовков */
+.label {
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+/* Стили для CheckBox */
+.check-box {
+    -fx-font-size: 16px;
+    -fx-text-fill: white;
+    -fx-padding: 8 0 8 0;
+}
+
+/* Скрываем стандартный прямоугольник и делаем кастомный */
+.check-box .box {
+    -fx-background-color: #5a1dd1;
+    -fx-border-color: white;
+    -fx-border-width: 2;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-pref-width: 20px;
+    -fx-pref-height: 20px;
+}
+
+/* Когда выбран */
+.check-box:selected .box {
+    -fx-background-color: #a75fff;
+}
+
+/* Галочка */
+.check-box:selected .mark {
+    -fx-background-color: white;
+    -fx-background-insets: 3;
+    -fx-background-radius: 3;
+}
+
+/* Минималистичное фиолетовое поле, как в Гартик Фон */
+.uno-input {
+    -fx-background-color: #1e0f2e;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: #7a3cff;
+    -fx-border-width: 2;
+
+    -fx-text-fill: white;
+    -fx-font-size: 18px;
+    -fx-alignment: center;
+
+    -fx-padding: 8 14;
+}
+
+/* Эффект при фокусе */
+.uno-input:focused {
+    -fx-border-color: #a470ff;
+    -fx-background-color: #241236;
+}
+
+.uno-input .text-field:prompt-text,
+.uno-input:focused .text-field:prompt-text {
+    -fx-text-fill: rgba(255,255,255,0.35);
+}
