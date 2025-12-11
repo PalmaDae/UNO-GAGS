@@ -4,6 +4,7 @@ import javafx.scene.Scene
 import javafx.scene.layout.StackPane
 import javafx.stage.Stage
 import view.CreateView
+import view.JoinView
 import view.PlayerView
 
 class MainMenuController(private val stage: Stage) {
@@ -13,7 +14,8 @@ class MainMenuController(private val stage: Stage) {
     }
 
     fun joinButton() {
-
+        val joinView = JoinView(stage)
+        stage.scene = joinView.scene
     }
 
     fun exitButton() {
