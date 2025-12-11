@@ -4,6 +4,7 @@ import enity.Player
 import javafx.stage.Stage
 import view.CreateView
 import view.LobbyView
+import view.MainMenuView
 
 class GameController(private val stage: Stage) {
     val players = mutableListOf<Player>();
@@ -25,5 +26,10 @@ class GameController(private val stage: Stage) {
     fun createLobby() {
         val createView = CreateView(stage);
         stage.scene = createView.scene;
+    }
+
+    fun closedGame() {
+        val mainView = MainMenuView(stage);
+        stage.scene = mainView.scene;
     }
 }
