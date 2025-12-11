@@ -14,9 +14,8 @@ import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
 import config.StageConfig
 
-class PlayerView(private val stage: Stage) {
-    private val playerController = PlayerController(stage)
-    private val gameController = GameController(stage);
+class PlayerView(private val stage: Stage, private val gameController: GameController, private val isJoin: Boolean) {
+    private val playerController = PlayerController(stage, gameController, isJoin)
 
     lateinit var scene: Scene;
 
@@ -44,15 +43,13 @@ class PlayerView(private val stage: Stage) {
             rect.setOnMouseClicked { selectedAvatar = rect }
         }
 
-        val createButton = Button("Create and go play").apply { setOnAction {
-
-            val name = nameField.text
-            val avatar = selectedAvatar?.id ?: "default"
-
-            gameController.createPlayer(name,avatar)
-            gameController.createLobby();
-
-        } }
+        val createButton = Button("Create and go play").apply {
+            setOnAction {
+                val name = nameField.text
+                val avatar = selectedAvatar?.id ?: "default"
+                playerController.createPlayer(name, avatar)
+            }
+        }
 
         val backButton = Button("Back").apply { setOnAction { playerController.backButton() } }
 

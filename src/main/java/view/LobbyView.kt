@@ -2,6 +2,7 @@ package view
 
 import config.StageConfig
 import controller.LobbyController
+import enity.Player
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
@@ -13,6 +14,7 @@ import javafx.stage.Stage
 class LobbyView(private val stage: Stage, private val rules: List<Boolean>) {
     lateinit var scene: Scene
     private val controller = LobbyController(stage)
+    private val playersBox = VBox(8.0)
 
     init {
         val password = controller.generatePassword()
@@ -40,11 +42,20 @@ class LobbyView(private val stage: Stage, private val rules: List<Boolean>) {
                 Label("Lobby Owner"),
                 passwordField,
                 copyButton,
+                playersBox,
                 startButton
             )
         }
 
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
+    }
+
+    fun updatePlayers(players: List<Player>) {
+        playersBox.children.clear()
+        for (player in players) {
+            val label = Label("${player.name} (${player.role})")
+            playersBox.children.add(label)
+        }
     }
 }

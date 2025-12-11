@@ -6,15 +6,15 @@ import javafx.stage.Stage
 import view.MainMenuView
 import view.PlayerView
 
-class JoinController(private val stage: Stage) {
+class JoinController(private val stage: Stage, private val gameController: GameController) {
 
     fun joinGame(password: String) {
-        val playerView = PlayerView(stage)
+        val playerView = PlayerView(stage, gameController, isJoin = true)
         stage.scene = playerView.scene;
     }
 
     fun backTo() {
-        val menuView = MainMenuView(stage)
+        val menuView = MainMenuView(stage, gameController)
         stage.scene = menuView.scene
     }
 

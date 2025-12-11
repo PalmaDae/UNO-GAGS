@@ -7,13 +7,13 @@ import javafx.scene.control.Button
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import config.StageConfig
+import controller.GameController
 
-class MainMenuView(private val stage: Stage) {
-    private val controller = MainMenuController(stage)
+class MainMenuView(private val stage: Stage, private val gameController: GameController) {
+    private val controller = MainMenuController(stage, gameController)
     lateinit var scene: Scene
 
     init {
-        val controller = MainMenuController(stage)
 
         val createButton = Button("Create").apply { setOnAction {controller.createButton()} }
         val joinButton = Button("Join").apply { setOnAction {controller.joinButton()} }
