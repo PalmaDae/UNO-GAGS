@@ -9,8 +9,8 @@ import view.MainMenuView
 class GameController(private val stage: Stage) {
     val players = mutableListOf<Player>();
 
-    fun createPlayer(name: String, avatar: String) {
-        val role = if (players.isEmpty()) "OWNER" else "PLAYER"
+    fun addPlayer(name: String, avatar: String, isOwner: Boolean = false) {
+        val role = if (isOwner) "OWNER" else "PLAYER"
         val player = Player(
             id = System.currentTimeMillis(),
             name = name,
@@ -23,13 +23,13 @@ class GameController(private val stage: Stage) {
         createLobby()
     }
 
-    fun createLobby() {
-        val createView = CreateView(stage);
-        stage.scene = createView.scene;
+    fun closedGame() {
+        val menuView = MainMenuView(stage, gameController = GameController(stage))
+        stage.scene = menuView.scene
     }
 
-    fun closedGame() {
-        val mainView = MainMenuView(stage);
-        stage.scene = mainView.scene;
+    fun createLobby() {
+        val lobby = LobbyView(stage, rules = listOf())
+        stage.scene = lobby.scene;
     }
 }

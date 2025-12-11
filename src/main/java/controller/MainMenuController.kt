@@ -7,14 +7,14 @@ import view.CreateView
 import view.JoinView
 import view.PlayerView
 
-class MainMenuController(private val stage: Stage) {
+class MainMenuController(private val stage: Stage, private val gameController: GameController) {
     fun createButton() {
-        val playerView = PlayerView(stage)
+        val playerView = PlayerView(stage, gameController, isJoin = false)
         stage.scene = playerView.scene;
     }
 
     fun joinButton() {
-        val joinView = JoinView(stage)
+        val joinView = JoinView(stage, gameController)
         stage.scene = joinView.scene
     }
 

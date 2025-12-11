@@ -1,6 +1,7 @@
 package view
 
 import config.StageConfig
+import controller.GameController
 import controller.JoinController
 import controller.MainMenuController
 import javafx.geometry.Pos
@@ -11,8 +12,8 @@ import javafx.scene.control.TextField
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 
-class JoinView(private val stage: Stage) {
-    private val controller = JoinController(stage)
+class JoinView(private val stage: Stage, private val gameController: GameController) {
+    private val controller = JoinController(stage, gameController)
     lateinit var scene: Scene
 
     init {

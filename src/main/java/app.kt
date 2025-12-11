@@ -1,3 +1,4 @@
+import controller.GameController
 import javafx.application.Application
 import javafx.stage.Stage
 import view.MainMenuView
@@ -8,7 +9,9 @@ fun main() {
 
 class MainMenuApp : javafx.application.Application() {
     override fun start(primaryStage: Stage) {
-        val mainMenu = MainMenuView(primaryStage)
+        val gameController = GameController(primaryStage)
+
+        val mainMenu = MainMenuView(primaryStage, gameController)
         primaryStage.scene = mainMenu.scene
         primaryStage.title = "UNO Game"
         primaryStage.show()

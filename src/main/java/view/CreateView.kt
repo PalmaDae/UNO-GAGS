@@ -15,8 +15,8 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
 
-class CreateView(private val stage: Stage) {
-    private val controller = CreateController(stage);
+class CreateView(private val stage: Stage, private val gameController: GameController) {
+    private val controller = CreateController(stage, gameController);
     lateinit var scene: Scene;
 
     init {
