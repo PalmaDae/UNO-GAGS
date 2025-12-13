@@ -1,7 +1,5 @@
 package uno_server;
 
-import uno_server.common.Server;
-
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -30,12 +28,12 @@ public class ServerLauncher {
                 logger.log(Level.INFO, "Shutdown hook triggered. Closing server...");
                 try {
                     server.close();
-                } catch (IOException e) {
+                } catch (Exception e) {
                     logger.log(Level.SEVERE, "Error closing server from shutdown hook", e);
                 }
             }));
 
-            server.handle();
+            server.listen();
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Server terminated unexpectedly", e);
         }
