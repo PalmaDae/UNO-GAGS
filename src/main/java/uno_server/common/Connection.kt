@@ -12,7 +12,8 @@ import java.util.logging.Logger
  * Предоставляет удобные методы для чтения и отправки строк текста.
  * Автоматически устанавливает таймаут для операций чтения.
  */
-class Connection @JvmOverloads constructor(
+class Connection
+@JvmOverloads constructor(
     private val socket: Socket?,
     private val socketTimeoutMs: Int = 120000 // 120 секунд таймаут по умолчанию
 ) : Closeable {

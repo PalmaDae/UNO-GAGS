@@ -3,10 +3,6 @@ package uno_server.game
 import uno_proto.dto.*
 import uno_server.game.DeckBuilder.DeckPiles
 
-/**
- * Represents a complete UNO game session.
- * Manages game state, player turns, card play validation, and scoring.
- */
 class GameSession(// Getters for game properties
     val roomId: Long, initialPlayers: MutableList<PlayerState>
 ) {
@@ -34,9 +30,7 @@ class GameSession(// Getters for game properties
         dealInitialCards()
     }
 
-    /**
-     * Deals 7 cards to each player from the draw pile.
-     */
+
     private fun dealInitialCards() {
         for (player in players.values) {
             for (i in 0..6) {
@@ -46,26 +40,11 @@ class GameSession(// Getters for game properties
     }
 
     val currentPlayerId: Long
-        /**
-         * Gets the current player's ID.
-         */
         get() = playerOrder[currentPlayerIndex]!!
 
     val currentCard: Card
-        /**
-         * Gets the current top card of the discard pile.
-         */
         get() = deckPiles.getTopCard()
 
-    /**
-     * Validates if a card can be played on the current card.
-     * A card can be played if:
-     * - It matches the color of the current card
-     * - It matches the number of the current card
-     * - It matches the type of the current card
-     * - It's a wild card
-     * - A color has been chosen and the card matches that color
-     */
     fun canPlayCard(card: Card): Boolean {
         val currentCard = this.currentCard
 
@@ -102,10 +81,6 @@ class GameSession(// Getters for game properties
         ) return true else return false
     }
 
-    /**
-     * Plays a card from the current player's hand.
-     * Applies card effects and updates game state.
-     */
     fun playCard(playerId: Long, cardIndex: Int, chosenColor: CardColor?) {
         // Validate it's the player's turn
         check(playerId == this.currentPlayerId) { "Not your turn" }
@@ -167,9 +142,7 @@ class GameSession(// Getters for game properties
         gamePhase = GamePhase.WAITING_TURN
     }
 
-    /**
-     * Sets the chosen color after playing a wild card.
-     */
+
     fun setChosenColor(color: CardColor?) {
         check(gamePhase == GamePhase.CHOOSING_COLOR) { "Not waiting for color choice" }
 
@@ -183,9 +156,7 @@ class GameSession(// Getters for game properties
         gamePhase = GamePhase.WAITING_TURN
     }
 
-    /**
-     * Applies the effect of the played card.
-     */
+
     private fun applyCardEffect(card: Card) {
         when (card.type) {
             CardType.SKIP ->                 // Skip the next player
@@ -224,9 +195,7 @@ class GameSession(// Getters for game properties
         }
     }
 
-    /**
-     * Moves to the next player based on current direction.
-     */
+
     private fun moveToNextPlayer() {
         currentPlayerIndex = if (direction == GameDirection.CLOCKWISE)
             (currentPlayerIndex + 1) % playerOrder.size
@@ -234,9 +203,7 @@ class GameSession(// Getters for game properties
             (currentPlayerIndex - 1 + playerOrder.size) % playerOrder.size
     }
 
-    /**
-     * Current player draws a card and ends their turn.
-     */
+
     fun drawCard(playerId: Long) {
         check(playerId == this.currentPlayerId) { "Not your turn" }
 
@@ -247,9 +214,7 @@ class GameSession(// Getters for game properties
         gamePhase = GamePhase.WAITING_TURN
     }
 
-    /**
-     * Player declares UNO (must have exactly 2 cards).
-     */
+
     fun sayUno(playerId: Long) {
         val player: PlayerState = players.get(playerId)!!
         requireNotNull(player) { "Player not found: " + playerId }
@@ -257,48 +222,7 @@ class GameSession(// Getters for game properties
         player.declareUno()
     }
 
-    /**
-     * Calculates scores for all players when the game ends.
-     * The winner gets points equal to the sum of all cards in other players' hands.
-     */
-    fun calculateScores(): MutableMap<Long?, Int?> {
-        val scores: MutableMap<Long?, Int?> = HashMap<Long?, Int?>()
-
-        if (gamePhase != GamePhase.FINISHED) {
-            return scores // Game not finished yet
-        }
-
-        // Find the winner (player with 0 cards)
-        var winner: PlayerState? = null
-        for (player in players.values) {
-            if (player.cardCount == 0) {
-                winner = player
-                break
-            }
-        }
-
-        if (winner == null) {
-            return scores // No winner found
-        }
-
-        // Calculate total points from all other players
-        var totalPoints = 0
-        for (player in players.values) {
-            if (player.playerId != winner.playerId) {
-                totalPoints += player.calculateHandScore()
-            }
-        }
-
-        // Winner gets all the points
-        scores.put(winner.playerId, totalPoints)
-
-        return scores
-    }
-
     val gameState: GameState
-        /**
-         * Gets the current game state as a DTO for transmission to clients.
-         */
         get() {
             val playerInfos: MutableMap<Long, PlayerGameInfo> = HashMap()
 
@@ -320,8 +244,4 @@ class GameSession(// Getters for game properties
                 gamePhase
             )
         }
-
-    fun getPlayers(): MutableMap<Long?, PlayerState?> {
-        return HashMap(players)
-    }
 }

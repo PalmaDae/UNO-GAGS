@@ -5,8 +5,8 @@ import uno_proto.dto.*;
 import java.util.*;
 
 /**
- * Represents a player's state in an UNO game.
- * Tracks the player's hand, UNO declaration status, and other player-specific data.
+ * Представляет состояние игрока в игре UNO.
+ * Отслеживает руку игрока, статус объявления UNO и другие специфичные данные игрока.
  */
 public class PlayerState {
     private final long playerId;
@@ -57,10 +57,10 @@ public class PlayerState {
     public int getCardCount() { return hand.size(); }
     
     /**
-     * Calculate the score value of all cards in this player's hand.
-     * Number cards: face value
-     * Action cards: 20 points each
-     * Wild cards: 50 points each
+     * Рассчитайте значение всех карт в руке этого игрока.
+     * Числовые карты: номинал
+     * Карты действий: по 20 очков каждая
+     * Уайлд-карды: по 50 очков каждому
      */
     public int calculateHandScore() {
         int score = 0;
