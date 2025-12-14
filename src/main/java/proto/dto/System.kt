@@ -29,3 +29,12 @@ constructor(
     val message: String = "pong",
     val timestamp: Long = System.currentTimeMillis()
 ) : Payload
+
+data class ErrorPayload(
+    val message: String,
+    val code: String
+) : Payload
+
+data class EmptyPayload(
+    val dummy: String = ""
+) : Payload

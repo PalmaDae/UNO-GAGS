@@ -95,7 +95,7 @@
                     <execution>
                         <id>run-ui</id>
                         <configuration>
-                            <mainClass>uno_ui.MainApp</mainClass>
+                            <mainClass>client.MainApp</mainClass>
                             <arguments>
                                 <argument>--module-path</argument>
                                 <argument>${project.build.directory}/dependency</argument>
@@ -111,25 +111,17 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>uno_ui.MainApp</mainClass>
+                    <mainClass>client.MainApp</mainClass>
                 </configuration>
                 <executions>
                     <execution>
                         <!-- Default configuration for running with: mvn javafx:run -->
                         <id>default-cli</id>
                         <configuration>
-                            <mainClass>uno_ui.MainApp</mainClass>
+                            <mainClass>client.MainApp</mainClass>
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
             </plugin>
         </plugins>
     </build>
@@ -147,13 +139,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-            <version>2.10.1</version>
-        </dependency>
-        
-        <!-- JavaFX dependencies for UI -->
-        <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>21.0.1</version>
@@ -164,5 +149,4 @@
             <version>21.0.1</version>
         </dependency>
     </dependencies>
-
 </project>
