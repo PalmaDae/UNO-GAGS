@@ -3,7 +3,7 @@ package server.game
 import proto.dto.*
 import server.game.DeckBuilder.DeckPiles
 
-class GameSession(// Getters for game properties
+class GameSession(
     val roomId: Long, initialPlayers: MutableList<PlayerState>
 ) {
     private val players = HashMap<Long?, PlayerState>()
@@ -15,18 +15,15 @@ class GameSession(// Getters for game properties
     private val playerOrder: MutableList<Long?>
     var gamePhase: GamePhase = GamePhase.WAITING_TURN
         private set
-    private var chosenColor: CardColor? = null // For when a wild card is played
+    private var chosenColor: CardColor? = null
 
     init {
-        // Initialize players
         for (player in initialPlayers) {
             players.put(player.playerId, player)
         }
 
-        // Set player order
         this.playerOrder = ArrayList<Long?>(players.keys)
 
-        // Deal initial cards (7 per player)
         dealInitialCards()
     }
 
@@ -43,7 +40,7 @@ class GameSession(// Getters for game properties
         get() = playerOrder[currentPlayerIndex]!!
 
     val currentCard: Card
-        get() = deckPiles.getTopCard()
+        get() = deckPiles.topCard
 
     fun canPlayCard(card: Card): Boolean {
         val currentCard = this.currentCard
@@ -127,7 +124,7 @@ class GameSession(// Getters for game properties
 
 
         // Apply card effects
-        applyCardEffect(playedCard)
+        applyCardEffect(playedCard!!)
 
 
         // Check for win condition
@@ -217,7 +214,7 @@ class GameSession(// Getters for game properties
 
     fun sayUno(playerId: Long) {
         val player: PlayerState = players.get(playerId)!!
-        requireNotNull(player) { "Player not found: " + playerId }
+        requireNotNull(player) { "Player not found: $playerId" }
 
         player.declareUno()
     }
@@ -228,7 +225,7 @@ class GameSession(// Getters for game properties
 
             for (player in players.values) {
                 val info = PlayerGameInfo(
-                    player.username,
+                    player.username!!,
                     player.cardCount,
                     player.hasDeclaredUno()
                 )

@@ -25,6 +25,26 @@ data class JoinRoomResponse(
     val isSuccessful: Boolean
 ) : Payload
 
+data class LeaveRoomRequest(
+    val roomId: Long
+) : Payload
+
+data class StartGameRequest(
+    val roomId: Long
+) : Payload
+
+data class DrawCardRequest(
+    val roomId: Long
+) : Payload
+
+data class SayUnoRequest(
+    val roomId: Long
+) : Payload
+
+data class GetRoomsRequest(
+    val dummy: String = ""
+) : Payload
+
 data class RoomInfo(
     val roomId: Long,
     val roomName: String,
@@ -49,4 +69,8 @@ data class PlayerInfo(
     val username: String,
     val isOwner: Boolean,
     val isReady: Boolean
+) : Payload
+
+data class RoomsListPayload(
+    val rooms: List<RoomInfo> = emptyList()
 ) : Payload
