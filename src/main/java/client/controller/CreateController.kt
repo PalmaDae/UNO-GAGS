@@ -15,7 +15,7 @@ class CreateController(private val stage: Stage, private val gameController: Gam
     }
 
     fun createLobby(r1: Boolean, r2: Boolean, r3: Boolean) {
-        val lobby = LobbyView(stage, listOf(r1, r2, r3))
+        val lobby = LobbyView(stage, listOf(r1, r2, r3), gameController)
         stage.scene = lobby.scene
     }
 

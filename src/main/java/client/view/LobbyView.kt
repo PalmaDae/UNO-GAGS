@@ -1,6 +1,7 @@
 package client.view
 
 import client.config.StageConfig
+import client.controller.GameController
 import client.controller.LobbyController
 import javafx.geometry.Pos
 import javafx.scene.Scene
@@ -10,9 +11,9 @@ import javafx.scene.control.TextField
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 
-class LobbyView(private val stage: Stage, private val rules: List<Boolean>) {
+class LobbyView(private val stage: Stage, private val rules: List<Boolean>, private val gameController: GameController) {
     lateinit var scene: Scene
-    private val controller = LobbyController(stage)
+    private val controller = LobbyController(stage, gameController)
     private val playersBox = VBox(8.0)
 
     init {

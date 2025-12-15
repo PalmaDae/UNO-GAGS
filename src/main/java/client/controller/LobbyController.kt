@@ -5,13 +5,13 @@ import javafx.scene.input.ClipboardContent
 import javafx.stage.Stage
 import client.view.GameView
 
-class LobbyController(private val stage: Stage) {
+class LobbyController(private val stage: Stage, private val gameController: GameController) {
     fun kickPlayer() {
 
     }
 
     fun startGame() {
-        val gameView = GameView(stage)
+        val gameView = GameView(stage, gameController)
         stage.scene = gameView.scene;
     }
 

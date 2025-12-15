@@ -13,8 +13,7 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 
-class GameView(private val stage: Stage) {
-    private val controller = GameController(stage)
+class GameView(private val stage: Stage, private val gameController: GameController) {
     lateinit var scene: Scene
 
     init {
@@ -91,7 +90,7 @@ class GameView(private val stage: Stage) {
 
         val exitButton = Button("Exit").apply {
             prefWidth = 120.0
-            setOnAction { controller.closedGame() }
+            setOnAction { gameController.closedGame() }
         }
 
         val exitWrapper = HBox(exitButton).apply {
