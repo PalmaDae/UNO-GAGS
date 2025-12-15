@@ -3,6 +3,7 @@ package client.view
 import client.config.StageConfig
 import client.controller.GameController
 import client.controller.LobbyController
+import client.model.Player
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
@@ -51,11 +52,27 @@ class LobbyView(private val stage: Stage, private val rules: List<Boolean>, priv
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
     }
 
-//    fun updatePlayers(players: List<Player>) {
-//        playersBox.children.clear()
-//        for (player in players) {
-//            val label = Label("${player.username} (${player.role})")
-//            playersBox.children.add(label)
-//        }
-//    }
+    fun updatePlayers(players: List<Player>, ownerUsername: String) {
+        playersBox.children.clear()
+
+        for (player in players) {
+            val playerBox = VBox(4.0).apply {
+                alignment = Pos.CENTER_LEFT
+            }
+
+            val nameLabel = Label(player.username).apply {
+                styleClass.add("player-label")
+            }
+
+            val kickButton = Button("Kick").apply {
+                isDisable = player.username == ownerUsername
+                setOnAction {
+                    controller.kickPlayer(player)
+                }
+            }
+
+            playerBox.children.addAll(nameLabel, kickButton)
+            playersBox.children.add(playerBox)
+        }
+    }
 }

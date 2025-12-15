@@ -26,8 +26,6 @@ class MainMenuView(private val stage: Stage, private val gameController: GameCon
         root.children.addAll(createButton, joinButton,  exitButton)
         root.alignment = Pos.CENTER
 
-        root.style = "-fx.padding: 24;"
-
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
 

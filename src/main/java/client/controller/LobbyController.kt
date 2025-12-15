@@ -1,13 +1,16 @@
 package client.controller
 
+import client.model.Player
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.stage.Stage
 import client.view.GameView
 
 class LobbyController(private val stage: Stage, private val gameController: GameController) {
-    fun kickPlayer() {
+    fun kickPlayer(player: Player) {
+        println("Kicking player: ${player.username}")
 
+        gameController.removePlayer(player)
     }
 
     fun startGame() {

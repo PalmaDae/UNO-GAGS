@@ -6,10 +6,10 @@ import javafx.application.Application
 import javafx.stage.Stage
 
 fun main() {
-    javafx.application.Application.launch(MainMenuApp::class.java)
+    Application.launch(MainMenuApp::class.java)
 }
 
-class MainMenuApp : javafx.application.Application() {
+class MainMenuApp : Application() {
     override fun start(primaryStage: Stage) {
         val gameController = GameController(primaryStage)
 

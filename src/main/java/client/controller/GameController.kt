@@ -153,6 +153,10 @@ class GameController(private val stage: Stage) {
         createLobby()
     }
 
+    fun removePlayer(player: Player) {
+        players.remove(player)
+    }
+
     private fun handleRoomCreated(response: CreateRoomResponse) {
         roomModel.joinRoom(response.roomId)
         println("[GameController] Room created: ${response.roomId}")
