@@ -2,7 +2,7 @@ package client.model
 
 import proto.dto.GameState
 
-class GameState {
+class GameStateModel {
     var gameState: GameState? = null
 
     fun isInGame(): Boolean = gameState != null

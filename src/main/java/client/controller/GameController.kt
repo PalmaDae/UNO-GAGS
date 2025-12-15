@@ -2,7 +2,7 @@ package client.controller
 
 import client.common.NetworkClient
 import client.model.Chat
-import client.model.GameState
+import client.model.GameStateModel
 import client.model.Player
 import client.model.Room
 import client.view.LobbyView
@@ -17,6 +17,7 @@ import proto.dto.CreateRoomRequest
 import proto.dto.CreateRoomResponse
 import proto.dto.DrawCardRequest
 import proto.dto.ErrorMessage
+import proto.dto.GameState
 import proto.dto.GetRoomsRequest
 import proto.dto.JoinRoomRequest
 import proto.dto.JoinRoomResponse
@@ -32,7 +33,7 @@ class GameController(private val stage: Stage) {
     private val networkClient = NetworkClient()
     private val playerModel = Player()
     private val roomModel = Room()
-    private val gameStateModel = GameState()
+    private val gameStateModel = GameStateModel()
     private val chatModel = Chat()
     val players = mutableListOf<Player>();
 
@@ -132,7 +133,7 @@ class GameController(private val stage: Stage) {
             is CreateRoomResponse -> handleRoomCreated(payload)
             is JoinRoomResponse -> handleJoinRoom(payload)
             is LobbyUpdate -> handleLobbyUpdate(payload)
-//            is GameState -> handleGameState(payload)
+            is GameState -> handleGameState(payload)
             is RoomsListPayload -> handleRoomsList(payload)
             is ChatMessage -> handleChat(payload)
             is ErrorMessage -> handleError(payload)
@@ -170,14 +171,14 @@ class GameController(private val stage: Stage) {
         notifyStateChanged()
     }
 
-//    private fun handleGameState(newState: GameState) {
-//        gameStateModel.updateState(newState)
-//        println("[GameController] Game state updated")
-//        println("  Current player: ${newState.currentPlayerId}")
-//        println("  Current card: ${newState.currentCard}")
-//        println("  Players: ${newState.players.size}")
-//        notifyStateChanged()
-//    }
+    private fun handleGameState(newState: GameState) {
+        gameStateModel.updateState(newState)
+        println("[GameController] Game state updated")
+        println("  Current player: ${newState.currentPlayerId}")
+        println("  Current card: ${newState.currentCard}")
+        println("  Players: ${newState.players.size}")
+        notifyStateChanged()
+    }
 
     private fun handleRoomsList(roomsList: RoomsListPayload) {
         println("[GameController] Received ${roomsList.rooms.size} rooms")
@@ -212,7 +213,7 @@ class GameController(private val stage: Stage) {
         }
     }
 
-//    fun getCurrentGameState(): GameState? = gameStateModel.gameState
+    fun getCurrentGameState(): GameState? = gameStateModel.gameState
     fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
     fun getCurrentRoomId(): Long? = roomModel.currentRoomId
     fun getMyPlayerId(): Long? = playerModel.playerId
