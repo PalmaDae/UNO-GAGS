@@ -3,8 +3,12 @@ package client.model
 import proto.dto.Card
 
 class Player {
+
     var playerId: Long? = null
     var username: String = ""
+    var avatar: String = ""
+    var role: String = "PLAYER"
+
     var hand: MutableList<Card> = mutableListOf()
     var isReady: Boolean = false
     var selectedCardIndex: Int = -1
@@ -25,7 +29,10 @@ class Player {
     fun reset() {
         playerId = null
         username = ""
+        avatar = ""
+        role = "PLAYER"
         clearHand()
         isReady = false
     }
 }
+

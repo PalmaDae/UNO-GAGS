@@ -5,7 +5,10 @@ import client.model.Chat
 import client.model.GameState
 import client.model.Player
 import client.model.Room
+import client.view.LobbyView
+import client.view.MainMenuView
 import javafx.application.Platform
+import javafx.stage.Stage
 import proto.common.Payload
 import proto.dto.Card
 import proto.dto.CardColor
@@ -25,12 +28,19 @@ import proto.dto.RoomsListPayload
 import proto.dto.SayUnoRequest
 import proto.dto.StartGameRequest
 
-class GameController {
+class GameController(private val stage: Stage) {
     private val networkClient = NetworkClient()
     private val playerModel = Player()
     private val roomModel = Room()
     private val gameStateModel = GameState()
     private val chatModel = Chat()
+    val players = mutableListOf<Player>();
+
+    fun closedGame() {
+        val menuView = MainMenuView(stage, gameController = GameController(stage))
+        stage.scene = menuView.scene
+    }
+
 
     private var onStateChanged: Runnable? = null
     private var onChatMessage: Runnable? = null
@@ -41,6 +51,11 @@ class GameController {
 
     fun setOnStateChanged(callback: Runnable?) {
         onStateChanged = callback
+    }
+
+    fun createLobby() {
+        val lobby = LobbyView(stage, rules = listOf())
+        stage.scene = lobby.scene;
     }
 
     fun setOnChatMessage(callback: Runnable?) {
@@ -117,7 +132,7 @@ class GameController {
             is CreateRoomResponse -> handleRoomCreated(payload)
             is JoinRoomResponse -> handleJoinRoom(payload)
             is LobbyUpdate -> handleLobbyUpdate(payload)
-            is GameState -> handleGameState(payload)
+//            is GameState -> handleGameState(payload)
             is RoomsListPayload -> handleRoomsList(payload)
             is ChatMessage -> handleChat(payload)
             is ErrorMessage -> handleError(payload)
@@ -125,6 +140,16 @@ class GameController {
             is PongMessage -> println("[GameController] Received PONG")
             else -> println("[GameController] Unhandled payload type: ${payload::class.simpleName}")
         }
+    }
+
+    fun addPlayer(name: String, avatar: String, isOwner: Boolean = false) {
+        playerModel.playerId = System.currentTimeMillis()
+        playerModel.username = name
+        playerModel.avatar = avatar
+        playerModel.role = if (isOwner) "OWNER" else "PLAYER"
+
+        players.add(playerModel)
+        createLobby()
     }
 
     private fun handleRoomCreated(response: CreateRoomResponse) {
@@ -145,14 +170,14 @@ class GameController {
         notifyStateChanged()
     }
 
-    private fun handleGameState(newState: GameState) {
-        gameStateModel.updateState(newState)
-        println("[GameController] Game state updated")
-        println("  Current player: ${newState.currentPlayerId}")
-        println("  Current card: ${newState.currentCard}")
-        println("  Players: ${newState.players.size}")
-        notifyStateChanged()
-    }
+//    private fun handleGameState(newState: GameState) {
+//        gameStateModel.updateState(newState)
+//        println("[GameController] Game state updated")
+//        println("  Current player: ${newState.currentPlayerId}")
+//        println("  Current card: ${newState.currentCard}")
+//        println("  Players: ${newState.players.size}")
+//        notifyStateChanged()
+//    }
 
     private fun handleRoomsList(roomsList: RoomsListPayload) {
         println("[GameController] Received ${roomsList.rooms.size} rooms")
@@ -187,7 +212,7 @@ class GameController {
         }
     }
 
-    fun getCurrentGameState(): GameState? = gameStateModel.gameState
+//    fun getCurrentGameState(): GameState? = gameStateModel.gameState
     fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
     fun getCurrentRoomId(): Long? = roomModel.currentRoomId
     fun getMyPlayerId(): Long? = playerModel.playerId

@@ -2,7 +2,6 @@ package client.view
 
 import client.config.StageConfig
 import client.controller.LobbyController
-import client.enity.Player
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
@@ -51,11 +50,11 @@ class LobbyView(private val stage: Stage, private val rules: List<Boolean>) {
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
     }
 
-    fun updatePlayers(players: List<Player>) {
-        playersBox.children.clear()
-        for (player in players) {
-            val label = Label("${player.name} (${player.role})")
-            playersBox.children.add(label)
-        }
-    }
+//    fun updatePlayers(players: List<Player>) {
+//        playersBox.children.clear()
+//        for (player in players) {
+//            val label = Label("${player.username} (${player.role})")
+//            playersBox.children.add(label)
+//        }
+//    }
 }
