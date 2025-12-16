@@ -24,10 +24,12 @@ import proto.dto.JoinRoomResponse
 import proto.dto.LobbyUpdate
 import proto.dto.OkMessage
 import proto.dto.PlayCardRequest
+import proto.dto.PlayerHandUpdate
 import proto.dto.PongMessage
 import proto.dto.RoomsListPayload
 import proto.dto.SayUnoRequest
 import proto.dto.StartGameRequest
+import java.util.logging.Logger
 
 class GameController(private val stage: Stage) {
     private val networkClient = NetworkClient()
@@ -35,6 +37,11 @@ class GameController(private val stage: Stage) {
     private val roomModel = Room()
     private val gameStateModel = GameStateModel()
     private val chatModel = Chat()
+
+    companion object {
+        private val logger = Logger.getLogger(GameController::class.java.name)
+    }
+
     val players = mutableListOf<Player>();
 
     fun closedGame() {
@@ -134,6 +141,7 @@ class GameController(private val stage: Stage) {
             is JoinRoomResponse -> handleJoinRoom(payload)
             is LobbyUpdate -> handleLobbyUpdate(payload)
             is GameState -> handleGameState(payload)
+            is PlayerHandUpdate -> handlePlayerHandUpdate(payload)
             is RoomsListPayload -> handleRoomsList(payload)
             is ChatMessage -> handleChat(payload)
             is ErrorMessage -> handleError(payload)
@@ -214,6 +222,13 @@ class GameController(private val stage: Stage) {
             } catch (e: IllegalStateException) {
                 callback.run()
             }
+        }
+    }
+
+    private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
+        Platform.runLater {
+            playerModel.setHand(update.hand)
+            logger.info("Received and updated player hand: ${update.hand.size} cards.")
         }
     }
 

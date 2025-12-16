@@ -22,6 +22,12 @@ class Player {
         selectedCardIndex = if (index in hand.indices) index else -1
     }
 
+    fun setHand(newHand: List<Card>) {
+        hand.clear()
+        hand.addAll(newHand)
+        selectedCardIndex = -1
+    }
+
     fun hasSelectedCard(): Boolean = selectedCardIndex in hand.indices
 
     fun getSelectedCard(): Card? = hand.getOrNull(selectedCardIndex)

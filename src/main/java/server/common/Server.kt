@@ -77,6 +77,12 @@ class Server : AutoCloseable {
 
         room.gameStarted = true
         connection.sendMessage(OkMessage("Game started"))
+
+        room.players.forEach { player ->
+            sendHandUpdate(room, player.id)
+        }
+        broadcastGameState(room)
+
         broadcastRoomUpdate(request.roomId)
     }
 
