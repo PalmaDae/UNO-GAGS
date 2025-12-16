@@ -11,6 +11,10 @@ data class GameState(
     val gamePhase: GamePhase
 ) : Payload
 
+data class PlayerHandUpdate(
+    val hand: List<Card>
+) : Payload
+
 data class PlayerGameInfo(
     val username: String,
     val cardCount: Int,

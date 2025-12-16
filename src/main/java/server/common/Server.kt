@@ -2,6 +2,8 @@ package server.common
 
 import proto.common.Payload
 import proto.dto.*
+import server.game.GameSession
+import server.game.PlayerState
 import java.io.IOException
 import java.net.ServerSocket
 import java.util.concurrent.atomic.AtomicInteger
@@ -50,6 +52,34 @@ class Server : AutoCloseable {
         }
     }
 
+    private fun handleStartGame(connection: Connection, clientId: Long, request: StartGameRequest) {
+        val room = rooms[request.roomId] ?: run {
+            connection.sendMessage(ErrorMessage("Room not found"))
+            return
+        }
+
+        if (room.creatorId != clientId) {
+            connection.sendMessage(ErrorMessage("Only creator can start game"))
+            return
+        }
+
+        if (room.players.size < 2) {
+            connection.sendMessage(ErrorMessage("Need at least 2 players"))
+            return
+        }
+
+        val initialPlayerStates = room.players.map { userSession ->
+            PlayerState(userSession.id, userSession.name)
+        }.toMutableList()
+
+        val gameSession = GameSession(request.roomId, initialPlayerStates)
+        room.gameSession = gameSession
+
+        room.gameStarted = true
+        connection.sendMessage(OkMessage("Game started"))
+        broadcastRoomUpdate(request.roomId)
+    }
+
     private fun handleClient(connection: Connection, clientId: Long) {
         try {
             while (running) {
@@ -63,6 +93,29 @@ class Server : AutoCloseable {
             handleDisconnect(connection, clientId)
             connection.close()
             logger.info("Client #$clientId disconnected")
+        }
+    }
+
+    private fun sendHandUpdate(room: ServerRoom, playerId: Long) {
+        room.gameSession?.let { session ->
+            val playerState = session.players[playerId]
+
+            if (playerState != null) {
+                val update = PlayerHandUpdate(playerState.hand)
+
+                room.players.firstOrNull { it.id == playerId }?.connection?.sendMessage(update)
+            } else {
+                logger.warning("Attempted to send hand update to unknown player: $playerId")
+            }
+        }
+    }
+
+    private fun broadcastGameState(room: ServerRoom) {
+        room.gameSession?.let { session ->
+            val gameState = session.gameState
+            room.players.forEach { player ->
+                player.connection.sendMessage(gameState)
+            }
         }
     }
 
@@ -138,27 +191,6 @@ class Server : AutoCloseable {
         connection.sendMessage(RoomsListPayload(roomsList))
     }
 
-    private fun handleStartGame(connection: Connection, clientId: Long, request: StartGameRequest) {
-        val room = rooms[request.roomId] ?: run {
-            connection.sendMessage(ErrorMessage("Room not found"))
-            return
-        }
-
-        if (room.creatorId != clientId) {
-            connection.sendMessage(ErrorMessage("Only creator can start game"))
-            return
-        }
-
-        if (room.players.size < 2) {
-            connection.sendMessage(ErrorMessage("Need at least 2 players"))
-            return
-        }
-
-        room.gameStarted = true
-        connection.sendMessage(OkMessage("Game started"))
-        broadcastRoomUpdate(request.roomId)
-    }
-
     private fun handlePlayCard(connection: Connection, clientId: Long, request: PlayCardRequest) =
         connection.sendMessage(OkMessage("Card played"))
 
@@ -230,7 +262,8 @@ data class ServerRoom(
     val creatorId: Long,
     val password: String?,
     val players: MutableList<UserSession> = mutableListOf(),
-    var gameStarted: Boolean = false
+    var gameStarted: Boolean = false,
+    var gameSession: GameSession? = null
 ) {
     fun addPlayer(user: UserSession) {
         if (!players.any { it.id == user.id }) {

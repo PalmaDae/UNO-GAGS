@@ -6,7 +6,7 @@ import server.game.DeckBuilder.DeckPiles
 class GameSession(
     val roomId: Long, initialPlayers: MutableList<PlayerState>
 ) {
-    private val players = HashMap<Long?, PlayerState>()
+    internal val players = HashMap<Long?, PlayerState>()
     private val deckPiles: DeckPiles = DeckBuilder.createDeckPiles()
 
     var direction: GameDirection = GameDirection.CLOCKWISE
