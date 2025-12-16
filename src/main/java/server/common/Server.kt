@@ -359,7 +359,7 @@ class Server : AutoCloseable {
     private fun broadcastRoomUpdate(roomId: Long) {
         rooms[roomId]?.let { room ->
             val update = LobbyUpdate(
-                players = room.players.map { PlayerInfo(it.id, it.name, it.id == room.creatorId, false) },
+                players = room.players.map { PlayerInfo(it.id, it.name, it.id == room.creatorId,false, 0, false) },
                 roomStatus = if (room.gameStarted) RoomStatus.IN_PROGRESS else RoomStatus.WAITING
             )
             room.players.forEach { player ->

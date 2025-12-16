@@ -15,6 +15,13 @@ data class PlayerHandUpdate(
     val hand: List<Card>
 ) : Payload
 
+data class PlayerDisplayInfo(
+    val userId: Long,
+    val username: String,
+    val cardCount: Int,
+    val hasUno: Boolean
+) : Payload
+
 data class PlayerGameInfo(
     val username: String,
     val cardCount: Int,

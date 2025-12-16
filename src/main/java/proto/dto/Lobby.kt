@@ -68,7 +68,9 @@ data class PlayerInfo(
     val userId: Long,
     val username: String,
     val isOwner: Boolean,
-    val isReady: Boolean
+    val isReady: Boolean,
+    val cardCount: Int,
+    val hasUnoDeclared: Boolean
 ) : Payload
 
 data class RoomsListPayload(

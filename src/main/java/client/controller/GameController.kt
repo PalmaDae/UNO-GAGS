@@ -26,8 +26,10 @@ import proto.dto.LobbyUpdate
 import proto.dto.OkMessage
 import proto.dto.PlayCardRequest
 import proto.dto.PlayerHandUpdate
+import proto.dto.PlayerInfo
 import proto.dto.PongMessage
 import proto.dto.RoomsListPayload
+import proto.dto.PlayerDisplayInfo
 import proto.dto.SayUnoRequest
 import proto.dto.StartGameRequest
 import java.util.logging.Logger
@@ -43,7 +45,7 @@ class GameController(private val stage: Stage) {
         private val logger = Logger.getLogger(GameController::class.java.name)
     }
 
-    val players = mutableListOf<Player>();
+    val players = mutableListOf<Player>()
 
     fun closedGame() {
         val menuView = MainMenuView(stage, gameController = GameController(stage))
@@ -69,7 +71,7 @@ class GameController(private val stage: Stage) {
 
     fun createLobby() {
         val lobby = LobbyView(stage, rules = listOf(), gameController = this)
-        stage.scene = lobby.scene;
+        stage.scene = lobby.scene
     }
 
     fun handleCardSelection(cardIndex: Int, card: Card) {
@@ -90,6 +92,46 @@ class GameController(private val stage: Stage) {
         }
 
         notifyStateChanged()
+    }
+
+    fun getOpponentsInOrder(): List<PlayerDisplayInfo> {
+        val gameState = getCurrentGameState() ?: return emptyList()
+        val myPlayerId = getMyPlayerId() ?: return emptyList()
+
+        val allPlayersMap = gameState.players
+
+        if (allPlayersMap.size <= 1) {
+            return emptyList()
+        }
+
+        val playerIdsInOrder = allPlayersMap.keys.toList()
+
+        val myIndex = playerIdsInOrder.indexOf(myPlayerId)
+
+        if (myIndex == -1) {
+            return emptyList()
+        }
+
+        val numPlayers = playerIdsInOrder.size
+        val opponentsInOrder = mutableListOf<PlayerDisplayInfo>()
+
+        for (i in 1 until numPlayers) {
+            val opponentIndex = (myIndex + i) % numPlayers
+            val opponentId = playerIdsInOrder[opponentIndex]
+
+            val gameInfo = allPlayersMap[opponentId] ?: continue
+
+            val displayInfo = PlayerDisplayInfo(
+                userId = opponentId,
+                username = gameInfo.username,
+                cardCount = gameInfo.cardCount,
+                hasUno = gameInfo.hasUno
+            )
+
+            opponentsInOrder.add(displayInfo)
+        }
+
+        return opponentsInOrder
     }
 
     fun setOnChatMessage(callback: Runnable?) {

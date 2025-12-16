@@ -9,15 +9,16 @@ import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
-import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
+import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.stage.Stage
 import proto.dto.Card
 import proto.dto.CardColor
 import proto.dto.GamePhase
+import proto.dto.PlayerDisplayInfo
 
 class GameView(
     private val stage: Stage,
@@ -34,6 +35,9 @@ class GameView(
 
     private val CARD_WIDTH = 90.0
     private val CARD_HEIGHT = 135.0
+    private val topPlayerBox = HBox(8.0).apply { alignment = Pos.CENTER }
+    private val leftPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_LEFT }
+    private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
     private val SMALL_CARD_WIDTH = 70.0
     private val SMALL_CARD_HEIGHT = 105.0
 
@@ -75,20 +79,6 @@ class GameView(
             padding = Insets(16.0)
         }
 
-        val leftPlayer = createClosedDeck(4, Pos.CENTER_LEFT)
-        val rightPlayer = createClosedDeck(4, Pos.CENTER_RIGHT)
-        val topPlayer = HBox(8.0).apply {
-            alignment = Pos.CENTER
-            repeat(4) {
-                children.add(
-                    ImageView(ResourceLoader.loadCardImage("NONE", "BACK")).apply {
-                        fitWidth = SMALL_CARD_WIDTH
-                        fitHeight = SMALL_CARD_HEIGHT
-                    }
-                )
-            }
-        }
-
         val statusArea = VBox(10.0, gameStatusLabel).apply {
             alignment = Pos.CENTER
             gameStatusLabel.font = Font(18.0)
@@ -99,15 +89,21 @@ class GameView(
 
             this.center = centerBox
             this.bottom = VBox(10.0, unoWrapper, playerHandBox).apply { alignment = Pos.CENTER }
-            this.left = VBox(leftPlayer).apply { alignment = Pos.CENTER_LEFT }
-            this.right = VBox(rightPlayer).apply { alignment = Pos.CENTER_RIGHT }
-            this.top = VBox(topControls, topPlayer, statusArea).apply { alignment = Pos.CENTER }
+            this.left = leftPlayerBox
+            this.right = rightPlayerBox
+            this.top = VBox(topControls, topPlayerBox, statusArea).apply { alignment = Pos.CENTER }
         }
 
         root.styleClass.add("game-screen")
 
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
-        scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
+
+        val cssUrl = GameView::class.java.getResource("/css/style.css")
+        if (cssUrl != null) {
+            scene.stylesheets.add(cssUrl.toExternalForm())
+        } else {
+            System.err.println("FATAL ERROR: style.css not found in resources/css/ (Path used: /css/style.css)")
+        }
 
         scene.setOnKeyPressed { event ->
             if (event.code == KeyCode.SPACE) unoButton.fire()
@@ -116,18 +112,103 @@ class GameView(
         updateUI()
     }
 
-    private fun createClosedDeck(count: Int, pos: Pos): VBox {
-        return VBox(8.0).apply {
-            alignment = pos
-            repeat(count) {
+    private fun renderOpponents(opponents: List<PlayerDisplayInfo>) {
+        topPlayerBox.children.clear()
+        leftPlayerBox.children.clear()
+        rightPlayerBox.children.clear()
+
+        if (opponents.isEmpty()) return
+
+        val myPlayerId = gameController.getMyPlayerId() ?: return
+        val currentTurnPlayerId = gameController.getCurrentGameState()?.currentPlayerId
+
+        val sortedOpponents = gameController.getOpponentsInOrder()
+
+        when (sortedOpponents.size) {
+            1 -> {
+                topPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString()))
+            }
+            2 -> {
+                leftPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString(), isVertical = true))
+                rightPlayerBox.children.add(createOpponentDisplay(sortedOpponents[1], currentTurnPlayerId?.toString(), isVertical = true))
+            }
+            3 -> {
+                leftPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString(), isVertical = true))
+                topPlayerBox.children.add(createOpponentDisplay(sortedOpponents[1], currentTurnPlayerId?.toString()))
+                rightPlayerBox.children.add(createOpponentDisplay(sortedOpponents[2], currentTurnPlayerId?.toString(), isVertical = true))
+            }
+        }
+    }
+
+    private fun createOpponentDisplay(player: PlayerDisplayInfo, currentTurnPlayerId: String?, isVertical: Boolean = false): Pane {
+        val isCurrentTurn = player.userId.toString() == currentTurnPlayerId
+
+        val nameLabel = Label(player.username).apply {
+            styleClass.add("player-name-label")
+            if (isCurrentTurn) style = "-fx-font-weight: bold; -fx-text-fill: yellow;"
+        }
+        val cardCountLabel = Label("${player.cardCount} cards").apply {
+            styleClass.add("player-card-count-label")
+        }
+
+        val textContainer = VBox(3.0, nameLabel, cardCountLabel).apply {
+            alignment = Pos.CENTER
+            padding = Insets(5.0)
+        }
+
+        val cardImages = (0 until minOf(player.cardCount, 5)).map {
+            ImageView(ResourceLoader.loadCardImage("NONE", "BACK")).apply {
+                fitWidth = if (isVertical) SMALL_CARD_WIDTH else SMALL_CARD_WIDTH * 0.7
+                fitHeight = if (isVertical) SMALL_CARD_HEIGHT else SMALL_CARD_HEIGHT * 0.7
+            }
+        }
+
+        val stackPane = StackPane().apply {
+            cardImages.forEachIndexed { index, imageView ->
+                val offset = index * 5.0
+                StackPane.setAlignment(imageView, Pos.TOP_LEFT)
+                imageView.translateX = offset
+                imageView.translateY = offset
+                children.add(imageView)
+            }
+
+            if (player.cardCount > 5) {
                 children.add(
-                    ImageView(Image(javaClass.getResourceAsStream("/images/cards/back.png"))).apply {
-                        fitWidth = SMALL_CARD_WIDTH
-                        fitHeight = SMALL_CARD_HEIGHT
+                    Label("+${player.cardCount - 5}").apply {
+                        font = Font(24.0)
+                        style = "-fx-text-fill: white;"
+                    }
+                )
+            }
+
+            if (player.hasUno) {
+                children.add(
+                    Label("UNO!").apply {
+                        font = Font("Arial", 30.0)
+                        style = "-fx-text-fill: red; -fx-font-weight: bold; -fx-stroke: white; -fx-stroke-width: 1;"
                     }
                 )
             }
         }
+
+        val playerContainer = VBox(5.0).apply {
+            alignment = Pos.CENTER
+            children.addAll(textContainer, stackPane)
+
+            if (isCurrentTurn) {
+                border = Border(
+                    BorderStroke(
+                        Color.YELLOW,
+                        BorderStrokeStyle.SOLID,
+                        CornerRadii(5.0),
+                        BorderWidths(3.0)
+                    )
+                )
+            }
+            padding = Insets(10.0)
+        }
+
+        return playerContainer
     }
 
     private fun handleDrawCard() {
@@ -211,6 +292,7 @@ class GameView(
         chooserStage.showAndWait()
     }
 
+
     fun updateUI() {
         val gameState = gameController.getCurrentGameState()
         val myHand = gameController.getMyHand()
@@ -235,6 +317,9 @@ class GameView(
 
         val turnStatus = if (isMyTurn) " (YOUR TURN)" else ""
         gameStatusLabel.text = "Current Player: ${gameState.currentPlayerId}$turnStatus"
+
+        val sortedOpponents = gameController.getOpponentsInOrder()
+        renderOpponents(sortedOpponents)
 
         renderPlayerHand(myHand)
 
