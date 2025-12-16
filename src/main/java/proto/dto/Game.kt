@@ -31,6 +31,7 @@ enum class GamePhase {
 }
 
 data class PlayCardRequest(
+    val roomId: Long,
     val cardIndex: Int,           // Индекс карты в руке
     val chosenColor: CardColor? = null // Для WILD карт
 ) : Payload

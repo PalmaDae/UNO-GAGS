@@ -197,8 +197,36 @@ class Server : AutoCloseable {
         connection.sendMessage(RoomsListPayload(roomsList))
     }
 
-    private fun handlePlayCard(connection: Connection, clientId: Long, request: PlayCardRequest) =
-        connection.sendMessage(OkMessage("Card played"))
+    private fun handlePlayCard(connection: Connection, clientId: Long, request: PlayCardRequest) {
+        val room = rooms[request.roomId] ?: run {
+            connection.sendMessage(ErrorMessage("Room not found"))
+            return
+        }
+
+        val session = room.gameSession ?: run {
+            connection.sendMessage(ErrorMessage("Game not started"))
+            return
+        }
+
+        if (clientId != session.currentPlayerId) {
+            connection.sendMessage(ErrorMessage("Not your turn"))
+            return
+        }
+
+        try {
+            session.playCard(clientId, request.cardIndex, request.chosenColor)
+            connection.sendMessage(OkMessage("Card played successfully"))
+
+            sendHandUpdate(room, clientId)
+            broadcastGameState(room)
+
+        } catch (e: IllegalStateException) {
+            connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
+        } catch (e: Exception) {
+            logger.warning("Error playing card: ${e.message}")
+            connection.sendMessage(ErrorMessage("Server error during card play"))
+        }
+    }
 
 
     private fun handleDrawCard(connection: Connection, clientId: Long, request: DrawCardRequest) =

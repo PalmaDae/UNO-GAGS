@@ -109,7 +109,11 @@ class GameController(private val stage: Stage) {
             return
         }
 
-        val request = PlayCardRequest(playerModel.selectedCardIndex, chosenColor)
+        val request = PlayCardRequest(
+            roomId,
+            playerModel.selectedCardIndex,
+            chosenColor
+        )
         networkClient.sendMessage(request)
     }
 
@@ -227,7 +231,7 @@ class GameController(private val stage: Stage) {
 
     private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
         Platform.runLater {
-            playerModel.setHand(update.hand)
+            playerModel.updateHand(update.hand)
             logger.info("Received and updated player hand: ${update.hand.size} cards.")
         }
     }

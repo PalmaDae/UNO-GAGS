@@ -22,7 +22,7 @@ class Player {
         selectedCardIndex = if (index in hand.indices) index else -1
     }
 
-    fun setHand(newHand: List<Card>) {
+    fun updateHand(newHand: List<Card>) {
         hand.clear()
         hand.addAll(newHand)
         selectedCardIndex = -1
