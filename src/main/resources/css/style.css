@@ -95,3 +95,12 @@
 .uno-input:focused .text-field:prompt-text {
     -fx-text-fill: rgba(255,255,255,0.35);
 }
+
+.root {
+    -fx-background-color: linear-gradient(to bottom, #2b1055, #7597de);
+    /* ... */
+}
+
+.game-screen {
+    -fx-background-color: #111;
+}

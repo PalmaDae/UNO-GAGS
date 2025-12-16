@@ -9,6 +9,7 @@ import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
+import javafx.scene.image.Image
 import javafx.scene.image.ImageView
 import javafx.scene.input.KeyCode
 import javafx.scene.layout.*
@@ -29,6 +30,7 @@ class GameView(
     private val gameStatusLabel = Label("Waiting to start...")
     private val unoButton = Button("Say UNO! (SPACE)")
     private val drawButton = Button("Draw Card")
+    private val root = BorderPane()
 
     private val CARD_WIDTH = 90.0
     private val CARD_HEIGHT = 135.0
@@ -92,7 +94,7 @@ class GameView(
             gameStatusLabel.font = Font(18.0)
         }
 
-        val root = BorderPane().apply {
+        root.apply {
             padding = Insets(20.0)
 
             this.center = centerBox
@@ -102,8 +104,10 @@ class GameView(
             this.top = VBox(topControls, topPlayer, statusArea).apply { alignment = Pos.CENTER }
         }
 
+        root.styleClass.add("game-screen")
+
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
-        scene.stylesheets.add(javaClass.getResource("/styles/game.css").toExternalForm())
+        scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
 
         scene.setOnKeyPressed { event ->
             if (event.code == KeyCode.SPACE) unoButton.fire()
@@ -117,7 +121,7 @@ class GameView(
             alignment = pos
             repeat(count) {
                 children.add(
-                    ImageView(ResourceLoader.loadCardImage("NONE", "BACK")).apply {
+                    ImageView(Image(javaClass.getResourceAsStream("/images/cards/back.png"))).apply {
                         fitWidth = SMALL_CARD_WIDTH
                         fitHeight = SMALL_CARD_HEIGHT
                     }
@@ -219,6 +223,10 @@ class GameView(
 
         val cardColorName = currentCard?.color?.name ?: "NONE"
         val cardValueName = currentCard?.type?.name ?: "BACK"
+
+        val cardColor = currentCard?.color ?: CardColor.WILD
+        val cssColor = ResourceLoader.toCssColor(cardColor)
+        root.style = "-fx-background-color: derive($cssColor, -60%); -fx-padding: 20;"
 
         centerCardDisplay.image = ResourceLoader.loadCardImage(
             cardColorName,

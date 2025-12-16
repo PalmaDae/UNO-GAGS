@@ -7,6 +7,10 @@ object ResourceLoader {
     private const val RESOURCE_BASE = "/images/cards/"
 
     fun getCardImagePath(color: String, value: String): String {
+        if (value == "BACK") {
+            return "${RESOURCE_BASE}back.png"
+        }
+
         val colorDir = if (color == "WILD" || color == "NONE") "wild" else color.lowercase()
 
         val fileName = when (value) {
