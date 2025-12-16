@@ -5,6 +5,7 @@ import client.model.Chat
 import client.model.GameStateModel
 import client.model.Player
 import client.model.Room
+import client.view.GameView
 import client.view.LobbyView
 import client.view.MainMenuView
 import javafx.application.Platform
@@ -157,9 +158,17 @@ class GameController(private val stage: Stage) {
         networkClient.sendMessage(request)
     }
 
-    fun joinRoom(roomId: Long) {
-        val request = JoinRoomRequest(roomId, null)
-        networkClient.sendMessage(request)
+    fun joinRoom(roomId: Long, username: String, avatar: String) {
+        if (networkClient.isConnected()) {
+            val request = JoinRoomRequest(
+                roomId = roomId,
+                username = username,
+                avatar = avatar
+            )
+            networkClient.sendMessage(request)
+        } else {
+            System.err.println("Client is not connected. Cannot join room.")
+        }
     }
 
     fun getRooms() {
@@ -244,8 +253,18 @@ class GameController(private val stage: Stage) {
     }
 
     private fun handleJoinRoom(response: JoinRoomResponse) {
-        roomModel.joinRoom(response.roomId)
-        println("[GameController] Joined room: ${response.roomId}")
+        if (response.isSuccessful) {
+            roomModel.joinRoom(response.roomId)
+            logger.info("Joined room: ${response.roomId}")
+
+            Platform.runLater {
+                val lobby = LobbyView(stage, rules = listOf(), gameController = this)
+                stage.scene = lobby.scene
+            }
+        } else {
+            System.err.println("[GameController] Failed to join room ${response.roomId}")
+        }
+
         notifyStateChanged()
     }
 
@@ -261,11 +280,22 @@ class GameController(private val stage: Stage) {
         println("  Current player: ${newState.currentPlayerId}")
         println("  Current card: ${newState.currentCard}")
         println("  Players: ${newState.players.size}")
+        if (stage.scene != null && stage.scene.root.javaClass.simpleName != "GameViewRoot") {
+            Platform.runLater {
+                val gameView = GameView(stage, this)
+                stage.scene = gameView.scene
+            }
+        }
+
         notifyStateChanged()
     }
 
     private fun handleRoomsList(roomsList: RoomsListPayload) {
+        roomModel.updateAvailableRooms(roomsList.rooms)
+
         println("[GameController] Received ${roomsList.rooms.size} rooms")
+
+        notifyStateChanged()
     }
 
     private fun handleChat(chat: ChatMessage) {

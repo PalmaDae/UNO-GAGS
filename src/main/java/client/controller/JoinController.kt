@@ -7,9 +7,26 @@ import client.view.PlayerView
 
 class JoinController(private val stage: Stage, private val gameController: GameController) {
 
-    fun joinGame(password: String) {
-        val playerView = PlayerView(stage, gameController, isJoin = true)
-        stage.scene = playerView.scene;
+    fun joinGame(roomIdText: String) {
+        if (roomIdText.isBlank()) {
+            System.err.println("Room ID cannot be empty.")
+            return
+        }
+
+        try {
+            val roomId = roomIdText.toLong()
+
+            val playerView = PlayerView(
+                stage,
+                gameController,
+                isJoin = true,
+                initialRoomId = roomId
+            )
+            stage.scene = playerView.scene
+
+        } catch (e: NumberFormatException) {
+            System.err.println("Invalid Room ID format. Must be a number.")
+        }
     }
 
     fun backTo() {
@@ -17,7 +34,7 @@ class JoinController(private val stage: Stage, private val gameController: GameC
         stage.scene = menuView.scene
     }
 
-    fun pastePassword(): String {
+    fun pasteKey(): String {
         val clipboard = Clipboard.getSystemClipboard()
         return if (clipboard.hasString()) {
             clipboard.string

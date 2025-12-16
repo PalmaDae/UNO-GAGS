@@ -170,11 +170,6 @@ class Server : AutoCloseable {
             return
         }
 
-        if (room.password != null && room.password != request.password) {
-            connection.sendMessage(ErrorMessage("Invalid password"))
-            return
-        }
-
         val user = users.getOrPut(clientId) { UserSession(clientId, "User$clientId", connection) }
         room.addPlayer(user)
 

@@ -17,7 +17,8 @@ data class CreateRoomResponse(
 
 data class JoinRoomRequest(
     val roomId: Long,
-    val password: String? = null
+    val username: String,
+    val avatar: String
 ) : Payload
 
 data class JoinRoomResponse(

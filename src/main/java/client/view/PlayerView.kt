@@ -14,10 +14,20 @@ import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
 import client.config.StageConfig
 
-class PlayerView(private val stage: Stage, private val gameController: GameController, private val isJoin: Boolean) {
-    private val playerController = PlayerController(stage, gameController, isJoin)
+class PlayerView(
+    private val stage: Stage,
+    private val gameController: GameController,
+    private val isJoin: Boolean,
+    private val initialRoomId: Long? = null
+) {
+    private val playerController = PlayerController(
+        stage,
+        gameController,
+        isJoin,
+        initialRoomId
+    )
 
-    lateinit var scene: Scene;
+    lateinit var scene: Scene
 
     val toggleGroup = ToggleGroup()
 
@@ -30,12 +40,11 @@ class PlayerView(private val stage: Stage, private val gameController: GameContr
             styleClass.add("uno-input")
         }
 
-
         val testAvatar1 = Rectangle(50.0, 50.0, Color.BLUE)
         val testAvatar2 = Rectangle(50.0, 50.0, Color.RED)
         val testAvatar3 = Rectangle(50.0, 50.0, Color.GREEN)
 
-        var selectedAvatar: Rectangle? = null;
+        var selectedAvatar: Rectangle? = null
 
         val avatarsBox = HBox(10.0, testAvatar1, testAvatar2, testAvatar3).apply { alignment = Pos.CENTER }
 
@@ -61,5 +70,4 @@ class PlayerView(private val stage: Stage, private val gameController: GameContr
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
     }
-
 }
