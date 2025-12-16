@@ -72,6 +72,26 @@ class GameController(private val stage: Stage) {
         stage.scene = lobby.scene;
     }
 
+    fun handleCardSelection(cardIndex: Int, card: Card) {
+        val isAlreadySelected = playerModel.selectedCardIndex == cardIndex
+        val roomId = getCurrentRoomId() ?: return
+
+        if (isAlreadySelected) {
+            val isWild = card.type.name.contains("WILD")
+
+            if (isWild) {
+            } else {
+                playCard(roomId, null)
+                playerModel.selectCard(-1)
+            }
+
+        } else {
+            playerModel.selectCard(cardIndex)
+        }
+
+        notifyStateChanged()
+    }
+
     fun setOnChatMessage(callback: Runnable?) {
         onChatMessage = callback
     }
