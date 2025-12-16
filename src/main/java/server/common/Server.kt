@@ -197,6 +197,36 @@ class Server : AutoCloseable {
         connection.sendMessage(RoomsListPayload(roomsList))
     }
 
+    private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
+        val room = rooms[request.roomId] ?: run {
+            connection.sendMessage(ErrorMessage("Room not found"))
+            return
+        }
+
+        val session = room.gameSession ?: run {
+            connection.sendMessage(ErrorMessage("Game not started"))
+            return
+        }
+
+        if (clientId != session.currentPlayerId || session.gamePhase != GamePhase.CHOOSING_COLOR) {
+            connection.sendMessage(ErrorMessage("Not the time or not your turn to choose color."))
+            return
+        }
+
+        try {
+            session.setChosenColor(request.chosenColor)
+            connection.sendMessage(OkMessage("Color chosen successfully"))
+
+            broadcastGameState(room)
+
+        } catch (e: IllegalStateException) {
+            connection.sendMessage(ErrorMessage(e.message ?: "Invalid color choice"))
+        } catch (e: Exception) {
+            logger.warning("Error choosing color: ${e.message}")
+            connection.sendMessage(ErrorMessage("Server error during color choice"))
+        }
+    }
+
     private fun handlePlayCard(connection: Connection, clientId: Long, request: PlayCardRequest) {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
@@ -229,11 +259,65 @@ class Server : AutoCloseable {
     }
 
 
-    private fun handleDrawCard(connection: Connection, clientId: Long, request: DrawCardRequest) =
-        connection.sendMessage(OkMessage("Card drawn"))
+    private fun handleDrawCard(connection: Connection, clientId: Long, request: DrawCardRequest) {
+        val room = rooms[request.roomId] ?: run {
+            connection.sendMessage(ErrorMessage("Room not found"))
+            return
+        }
 
-    private fun handleSayUno(connection: Connection, clientId: Long, request: SayUnoRequest) =
-        connection.sendMessage(OkMessage("UNO declared"))
+        val session = room.gameSession ?: run {
+            connection.sendMessage(ErrorMessage("Game not started"))
+            return
+        }
+
+        if (clientId != session.currentPlayerId) {
+            connection.sendMessage(ErrorMessage("Not your turn"))
+            return
+        }
+
+        try {
+            session.drawCard(clientId)
+            connection.sendMessage(OkMessage("Card drawn successfully"))
+
+            sendHandUpdate(room, clientId)
+
+            broadcastGameState(room)
+
+        } catch (e: IllegalStateException) {
+            connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
+        } catch (e: Exception) {
+            logger.warning("Error drawing card: ${e.message}")
+            connection.sendMessage(ErrorMessage("Server error during draw card"))
+        }
+    }
+
+    private fun handleSayUno(connection: Connection, clientId: Long, request: SayUnoRequest) {
+        val room = rooms[request.roomId] ?: run {
+            connection.sendMessage(ErrorMessage("Room not found"))
+            return
+        }
+
+        val session = room.gameSession ?: run {
+            connection.sendMessage(ErrorMessage("Game not started"))
+            return
+        }
+
+        if (session.players[clientId] == null) {
+            connection.sendMessage(ErrorMessage("Player not in game"))
+            return
+        }
+
+        try {
+            session.sayUno(clientId)
+            connection.sendMessage(OkMessage("UNO declared successfully"))
+
+        } catch (e: IllegalStateException) {
+            connection.sendMessage(ErrorMessage(e.message ?: "Could not declare UNO"))
+        } catch (e: Exception) {
+            logger.warning("Error declaring UNO: ${e.message}")
+            connection.sendMessage(ErrorMessage("Server error during UNO declaration"))
+        }
+    }
 
 
     private fun handleChat(connection: Connection, clientId: Long, message: ChatMessage) {

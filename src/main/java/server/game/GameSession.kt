@@ -156,7 +156,7 @@ class GameSession(
 
     private fun applyCardEffect(card: Card) {
         when (card.type) {
-            CardType.SKIP ->                 // Skip the next player
+            CardType.SKIP ->
                 moveToNextPlayer()
 
             CardType.REVERSE -> {
@@ -169,16 +169,18 @@ class GameSession(
                 }
             }
 
+
             CardType.DRAW_TWO -> {
-                // Next player draws 2 cards and loses their turn
-                moveToNextPlayer()
+                // Следующий игрок берет 2 карты и пропускает ход.
+                moveToNextPlayer() // Переход к наказанному игроку
                 val drawTwoTarget: PlayerState = players.get(this.currentPlayerId)!!
                 drawTwoTarget.addCard(deckPiles.drawCard())
                 drawTwoTarget.addCard(deckPiles.drawCard())
+
+                moveToNextPlayer() // <--- ДОБАВЛЕНО: Переход к игроку, который делает ход
             }
 
             CardType.WILD_DRAW_FOUR -> {
-                // Next player draws 4 cards and loses their turn
                 moveToNextPlayer()
                 val drawFourTarget: PlayerState = players.get(this.currentPlayerId)!!
                 var i = 0
@@ -186,6 +188,8 @@ class GameSession(
                     drawFourTarget.addCard(deckPiles.drawCard())
                     i++
                 }
+
+                moveToNextPlayer()
             }
 
             CardType.WILD, CardType.NUMBER -> {}

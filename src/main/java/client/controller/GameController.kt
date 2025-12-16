@@ -13,6 +13,7 @@ import proto.common.Payload
 import proto.dto.Card
 import proto.dto.CardColor
 import proto.dto.ChatMessage
+import proto.dto.ChooseColorRequest
 import proto.dto.CreateRoomRequest
 import proto.dto.CreateRoomResponse
 import proto.dto.DrawCardRequest
@@ -49,6 +50,11 @@ class GameController(private val stage: Stage) {
         stage.scene = menuView.scene
     }
 
+
+    fun chooseColor(roomId: Long, color: CardColor) {
+        val request = ChooseColorRequest(roomId, color)
+        networkClient.sendMessage(request)
+    }
 
     private var onStateChanged: Runnable? = null
     private var onChatMessage: Runnable? = null

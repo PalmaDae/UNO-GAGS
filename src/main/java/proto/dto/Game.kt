@@ -26,6 +26,11 @@ enum class GameDirection {
     CLOCKWISE, COUNTER_CLOCKWISE
 }
 
+data class ChooseColorRequest(
+    val roomId: Long,
+    val chosenColor: CardColor
+) : Payload
+
 enum class GamePhase {
     WAITING_TURN, CHOOSING_COLOR, DRAWING_CARD, FINISHED
 }
