@@ -1,22 +1,29 @@
 package client.controller
 
 import javafx.stage.Stage
-import client.view.LobbyView
 import client.view.MainMenuView
+import java.util.UUID
 
 class CreateController(private val stage: Stage, private val gameController: GameController) {
     fun backButton() {
-        val mainView = MainMenuView(stage, gameController);
-        stage.scene = mainView.scene;
+        val mainView = MainMenuView(stage, gameController)
+        stage.scene = mainView.scene
     }
 
-    fun createOwner(name: String, avatar: String) {
-        gameController.addPlayer(name, avatar, true)
-    }
+    fun createLobby(
+        maxPlayers: Int,
+        allowStuck: Boolean,
+        rules: List<Boolean>
+    ) {
+        val roomName = "Room-" + UUID.randomUUID().toString().substring(0, 4)
+        val password: String? = null
 
-    fun createLobby(r1: Boolean, r2: Boolean, r3: Boolean) {
-        val lobby = LobbyView(stage, listOf(r1, r2, r3), gameController)
-        stage.scene = lobby.scene
+        gameController.createRoom(
+            roomName,
+            password,
+            maxPlayers,
+            allowStuck,
+            rules
+        )
     }
-
 }

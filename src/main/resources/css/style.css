@@ -104,3 +104,24 @@
 .game-screen {
     -fx-background-color: #111;
 }
+
+/* Стиль для строки с настройкой (максимальное количество игроков) */
+.setting-row {
+    -fx-background-color: #3f3f3f; /* Темный фон для выделения */
+    -fx-border-color: #555555;
+    -fx-border-radius: 5px;
+    -fx-padding: 8px 15px;
+    -fx-spacing: 15px; /* Увеличить расстояние между элементами внутри HBox */
+    -fx-max-width: 300px; /* Ограничить ширину */
+}
+
+/* Стиль для Spinners (чтобы он был меньше) */
+.spinner {
+    -fx-max-width: 70px;
+}
+
+/* Стиль для Label в этой строке */
+.setting-row .label {
+    -fx-font-size: 14pt;
+    -fx-text-fill: #cccccc;
+}

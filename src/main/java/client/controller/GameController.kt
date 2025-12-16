@@ -41,6 +41,7 @@ class GameController(private val stage: Stage) {
     private val roomModel = Room()
     private val gameStateModel = GameStateModel()
     private val chatModel = Chat()
+    private var pendingLobbyRules: List<Boolean>? = null
 
     companion object {
         private val logger = Logger.getLogger(GameController::class.java.name)
@@ -153,9 +154,18 @@ class GameController(private val stage: Stage) {
         chatModel.clear()
     }
 
-    fun createRoom(roomName: String, maxPlayers: Int) {
-        val request = CreateRoomRequest(roomName, null, maxPlayers, false)
-        networkClient.sendMessage(request)
+    fun createRoom(
+        roomName: String,
+        password: String?,
+        maxPlayers: Int,
+        allowStuck: Boolean,
+        rules: List<Boolean>
+    ) {
+        val request = CreateRoomRequest(roomName, password, maxPlayers, allowStuck)
+        // FIXME: Отправить request через сетевой клиент
+        println("Sending CreateRoomRequest: $request")
+
+        pendingLobbyRules = rules
     }
 
     fun joinRoom(roomId: Long, username: String, avatar: String) {
