@@ -22,7 +22,7 @@ class LobbyController(private val stage: Stage, private val gameController: Game
     }
 
     fun generatePassword(): String {
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        val chars = "0123456789"
         return (1..5)
             .map { chars.random() }
             .joinToString("")

@@ -41,7 +41,12 @@ object ResourceLoader {
         return if (resource != null) {
             Image(resource.toExternalForm())
         } else {
-            Image(javaClass.getResource("/images/avatars/default.png")?.toExternalForm())
+            val defaultRes = javaClass.getResource("/images/avatars/default.png")
+            if (defaultRes != null) {
+                Image(defaultRes.toExternalForm())
+            } else {
+                Image("about:blank", 60.0, 60.0, true, true)
+            }
         }
     }
 

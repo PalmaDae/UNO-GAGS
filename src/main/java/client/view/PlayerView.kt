@@ -67,8 +67,6 @@ class PlayerView(
             avatarsBox.children.add(toggleButton)
         }
 
-        var selectedAvatar: Rectangle? = null
-
         avatarGroup.toggles.firstOrNull()?.isSelected = true
 
         val createButton = Button(if (isJoin) "Join and Play" else "Create and Play").apply {

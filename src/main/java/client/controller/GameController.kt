@@ -18,6 +18,7 @@ class GameController(private val stage: Stage) {
     private val playerModel = Player()
     private val roomModel = Room()
     private val gameStateModel = GameStateModel()
+    private var currentRoomId: Long? = null
 
     companion object {
         private val logger = Logger.getLogger(GameController::class.java.name)
@@ -130,6 +131,11 @@ class GameController(private val stage: Stage) {
         allowStuckCards: Boolean,
         infinityDrawing: Boolean
     ) {
+        if (!networkClient.isConnected()) {
+            println("ОШИБКА: Нет подключения к серверу! Пытаюсь подключиться...")
+            val connected = connect()
+            if (!connected) return
+        }
         val request = CreateRoomRequest(
             allowStuck = allowStuck,
             allowStuckCards = allowStuckCards,
@@ -186,16 +192,32 @@ class GameController(private val stage: Stage) {
         println("[GameController] Handling payload: ${payload::class.simpleName}")
 
         when (payload) {
-            is CreateRoomResponse -> handleRoomCreated(payload)
+            is CreateRoomResponse -> {
+                handleRoomCreated(payload)
+                handleCreateRoomResponse(payload)
+            }
             is JoinRoomResponse -> handleJoinRoom(payload)
             is LobbyUpdate -> handleLobbyUpdate(payload)
             is GameState -> handleGameState(payload)
             is PlayerHandUpdate -> handlePlayerHandUpdate(payload)
             is RoomsListPayload -> handleRoomsList(payload)
+            is JoinRoomResponse -> handleJoinRoom(payload)
             is ErrorMessage -> handleError(payload)
             is OkMessage -> println("[GameController] OK: ${payload.message}")
             is PongMessage -> println("[GameController] Received PONG")
             else -> println("[GameController] Unhandled payload type: ${payload::class.simpleName}")
+        }
+    }
+
+    fun handleCreateRoomResponse(response: CreateRoomResponse) {
+        if (response.isSuccessful) {
+            this.currentRoomId = response.roomId
+            Platform.runLater {
+                val lobbyView = LobbyView(stage, emptyList(), this)
+                stage.scene = lobbyView.scene
+            }
+        } else {
+            println("No room")
         }
     }
 
