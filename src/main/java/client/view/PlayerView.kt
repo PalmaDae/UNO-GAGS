@@ -21,13 +21,13 @@ class PlayerView(
     private val stage: Stage,
     private val gameController: GameController,
     private val isJoin: Boolean,
-    private val initialRoomId: Long? = null
+    private val initialPassword: String? = null
 ) {
     private val playerController = PlayerController(
         stage,
         gameController,
         isJoin,
-        initialRoomId
+        initialPassword
     )
 
     lateinit var scene: Scene

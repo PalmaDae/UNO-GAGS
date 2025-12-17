@@ -7,26 +7,19 @@ import client.view.PlayerView
 
 class JoinController(private val stage: Stage, private val gameController: GameController) {
 
-    fun joinGame(roomIdText: String) {
-        if (roomIdText.isBlank()) {
+    fun joinGame(roomPasswordText: String) {
+        if (roomPasswordText.isBlank()) {
             System.err.println("Room ID cannot be empty.")
             return
         }
 
-        try {
-            val roomId = roomIdText.toLong()
-
-            val playerView = PlayerView(
-                stage,
-                gameController,
-                isJoin = true,
-                initialRoomId = roomId
-            )
-            stage.scene = playerView.scene
-
-        } catch (_: NumberFormatException) {
-            System.err.println("Invalid Room ID format. Must be a number.")
-        }
+        val playerView = PlayerView(
+            stage,
+            gameController,
+            isJoin = true,
+            initialPassword = roomPasswordText
+        )
+        stage.scene = playerView.scene
     }
 
     fun backTo() {

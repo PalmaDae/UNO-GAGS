@@ -179,7 +179,7 @@ class Server : AutoCloseable {
         val room = if (isOwner)
             rooms[request.roomId]
         else
-            rooms.values.firstOrNull { room -> room.id == request.roomId }
+            rooms.values.firstOrNull { it.password == request.password }
 
         if (room == null) {
             connection.sendMessage(ErrorMessage("Room not found"))

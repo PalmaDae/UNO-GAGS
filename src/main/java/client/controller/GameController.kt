@@ -126,17 +126,23 @@ class GameController(private val stage: Stage) {
         networkClient.sendPayload(request)
     }
 
-    fun joinRoom(roomId: Long, username: String, avatar: String) {
-        if (networkClient.isConnected()) {
-            val request = JoinRoomRequest(
-                roomId = roomId,
-                username = username,
-                avatar = avatar
-            )
-            networkClient.sendPayload(request)
-        } else {
-            System.err.println("Client is not connected. Cannot join room.")
+    fun joinRoom(roomId: Long?, username: String, avatar: String, password: String? = null) {
+        if (!networkClient.isConnected()) {
+            println("Connecting to server...")
+            val success = connect()
+            if (!success) {
+                println("Failed to connect")
+                return
+            }
         }
+
+        val request = JoinRoomRequest(
+            roomId = roomId,
+            password = password,
+            username = username,
+            avatar = avatar
+        )
+        networkClient.sendPayload(request)
     }
 
     fun startGame(roomId: Long) {

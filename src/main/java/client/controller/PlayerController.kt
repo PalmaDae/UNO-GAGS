@@ -9,7 +9,7 @@ class PlayerController(
     private val stage: Stage,
     private val gameController: GameController,
     private val isJoin: Boolean,
-    private val initialRoomId: Long? = null
+    private val initialPassword: String? = null
 ) {
     fun backButton() {
         if (isJoin) {
@@ -33,16 +33,17 @@ class PlayerController(
         }
 
         if (isJoin) {
-            if (initialRoomId == null) {
+            if (initialPassword == null) {
                 System.err.println("Невозможно присоединиться: ID комнаты отсутствует.")
                 backButton()
                 return
             }
 
             gameController.joinRoom(
-                roomId = initialRoomId,
+                roomId = null,
                 username = name,
-                avatar = avatar
+                avatar = avatar,
+                password = initialPassword
             )
         } else {
             val createView = CreateView(stage, gameController)
