@@ -16,10 +16,9 @@ import proto.dto.PlayerInfo
 
 class LobbyView(
     private val stage: Stage,
-    private val rules: List<Boolean>,
     private val gameController: GameController
 ) {
-    lateinit var scene: Scene
+    var scene: Scene
     private val controller = LobbyController(stage, gameController)
 
     private val passwordField = TextField().apply {

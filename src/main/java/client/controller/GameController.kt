@@ -48,7 +48,7 @@ class GameController(private val stage: Stage) {
     }
 
     fun createLobby() {
-        val lobby = LobbyView(stage, rules = listOf(), gameController = this)
+        val lobby = LobbyView(stage, gameController = this)
         stage.scene = lobby.scene
     }
 
@@ -201,7 +201,6 @@ class GameController(private val stage: Stage) {
             is GameState -> handleGameState(payload)
             is PlayerHandUpdate -> handlePlayerHandUpdate(payload)
             is RoomsListPayload -> handleRoomsList(payload)
-            is JoinRoomResponse -> handleJoinRoom(payload)
             is ErrorMessage -> handleError(payload)
             is OkMessage -> println("[GameController] OK: ${payload.message}")
             is PongMessage -> println("[GameController] Received PONG")
@@ -213,7 +212,7 @@ class GameController(private val stage: Stage) {
         if (response.isSuccessful) {
             this.currentRoomId = response.roomId
             Platform.runLater {
-                val lobbyView = LobbyView(stage, emptyList(), this)
+                val lobbyView = LobbyView(stage, this)
                 stage.scene = lobbyView.scene
             }
         } else {
@@ -243,7 +242,7 @@ class GameController(private val stage: Stage) {
             logger.info("Joined room: ${response.roomId}")
 
             Platform.runLater {
-                val lobby = LobbyView(stage, rules = listOf(), gameController = this)
+                val lobby = LobbyView(stage, gameController = this)
                 stage.scene = lobby.scene
             }
         } else {
