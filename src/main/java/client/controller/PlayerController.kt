@@ -32,6 +32,8 @@ class PlayerController(
             return
         }
 
+        gameController.setUserData(name,avatar)
+
         if (isJoin) {
             if (initialPassword == null) {
                 System.err.println("Невозможно присоединиться: ID комнаты отсутствует.")

@@ -3,7 +3,6 @@ package client.model
 import proto.dto.Card
 
 class Player {
-
     var playerId: Long? = null
     var username: String = ""
     var avatar: String = ""
