@@ -15,11 +15,11 @@ data class CreateRoomResponse(
     val isSuccessful: Boolean
 ) : Payload
 
-// todo изменить с roomId на ключ
 data class JoinRoomRequest(
-    val roomId: Long,
-    val username: String,
-    val avatar: String
+    val roomId: Long? = null,
+    val password: String? = null,
+    val username: String, // информация для лобака
+    val avatar: String // информация для лобака
 ) : Payload
 
 data class JoinRoomResponse(

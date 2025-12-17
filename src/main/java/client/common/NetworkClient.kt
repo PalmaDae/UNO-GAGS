@@ -1,5 +1,6 @@
 package client.common
 
+import proto.common.NetworkMessage
 import proto.common.Payload
 import java.io.*
 import java.net.Socket
@@ -16,12 +17,14 @@ class NetworkClient(
     private var input: ObjectInputStream? = null
     private var output: ObjectOutputStream? = null
 
-    private val outgoingMessages: BlockingQueue<Payload> = LinkedBlockingQueue()
-    
+    // todo изменить на NetworkMessage
+    private val outgoingPayloads: BlockingQueue<Payload> = LinkedBlockingQueue()
+    private val outgoingMessages: BlockingQueue<NetworkMessage> = LinkedBlockingQueue()
+
     private var messageListener: Consumer<Payload>? = null
     private var senderThread: Thread? = null
     private var receiverThread: Thread? = null
-    
+
     @Volatile
     private var running = false
 
@@ -35,14 +38,14 @@ class NetworkClient(
             socket = Socket(host, port)
             output = ObjectOutputStream(socket!!.getOutputStream())
             input = ObjectInputStream(socket!!.getInputStream())
-            
+
             println("[NetworkClient] Connected!")
-            
+
             running = true
-            
+
             startSenderThread()
             startReceiverThread()
-            
+
             true
         } catch (e: IOException) {
             System.err.println("[NetworkClient] Failed to connect: ${e.message}")
@@ -53,47 +56,48 @@ class NetworkClient(
     fun disconnect() {
         println("[NetworkClient] Disconnecting...")
         running = false
-        
+
         try {
             socket?.takeIf { !it.isClosed }?.close()
         } catch (e: IOException) {
             System.err.println("[NetworkClient] Error closing socket: ${e.message}")
         }
-        
+
         senderThread?.let {
             it.join(1000)
         }
         receiverThread?.let {
             it.join(1000)
         }
-        
+
         println("[NetworkClient] Disconnected")
     }
 
-    fun sendMessage(payload: Payload) {
-        outgoingMessages.offer(payload)
-    }
+    // todo изменить с отправки Payload на отправку NetworkMessage
+    fun sendPayload(payload: Payload) =
+        outgoingPayloads.offer(payload)
+
 
     private fun startSenderThread() {
         senderThread = Thread({
             println("[Sender] Thread started")
-            
+
             while (running) {
                 try {
-                    val message = outgoingMessages.poll(1, TimeUnit.SECONDS)
-                    
-                    if (message != null) {
-                        println("[Sender] Sending: ${message::class.simpleName}")
-                        output?.writeObject(message)
+                    val payload = outgoingPayloads.poll(1, TimeUnit.SECONDS)
+
+                    if (payload != null) {
+                        println("[Sender] Sending: ${payload::class.simpleName}")
+                        output?.writeObject(payload)
                         output?.flush()
                     }
-                } catch (e: InterruptedException) {
+                } catch (_: InterruptedException) {
                     break
                 } catch (e: Exception) {
                     System.err.println("[Sender] Error sending message: ${e.message}")
                 }
             }
-            
+
             println("[Sender] Thread stopped")
         }, "NetworkClient-Sender").apply {
             isDaemon = true
@@ -104,23 +108,23 @@ class NetworkClient(
     private fun startReceiverThread() {
         receiverThread = Thread({
             println("[Receiver] Thread started")
-            
+
             while (running) {
                 try {
                     val obj = input?.readObject()
-                    
+
                     if (obj == null) {
                         println("[Receiver] Server closed connection")
                         break
                     }
-                    
+
                     if (obj is Payload) {
                         println("[Receiver] Received: ${obj::class.simpleName}")
                         messageListener?.accept(obj)
                     } else {
                         println("[Receiver] Received non-Payload object: ${obj::class.simpleName}")
                     }
-                    
+
                 } catch (e: EOFException) {
                     println("[Receiver] Server closed connection")
                     break
@@ -136,7 +140,7 @@ class NetworkClient(
                     e.printStackTrace()
                 }
             }
-            
+
             println("[Receiver] Thread stopped")
         }, "NetworkClient-Receiver").apply {
             isDaemon = true

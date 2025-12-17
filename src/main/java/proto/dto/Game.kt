@@ -48,21 +48,6 @@ data class PlayCardRequest(
     val chosenColor: CardColor? = null // Для WILD карт
 ) : Payload
 
-data class ChatMessage
-@JvmOverloads
-constructor(
-    val senderId: Long,
-    val senderName: String,
-    val content: String,
-    val messageType: ChatMessageType = ChatMessageType.TEXT,
-    val emojiId: String? = null,  // Для смайлов
-    val timestamp: Long = System.currentTimeMillis()
-) : Payload
-
-enum class ChatMessageType {
-    TEXT, EMOJI, VOICE
-}
-
 // Карта (базовая модель)
 data class Card(
     val id: String,
@@ -73,5 +58,6 @@ data class Card(
 
 // карта: красная, синяя, зелёная, жёлтая, дикая
 enum class CardColor { RED, BLUE, GREEN, YELLOW, WILD }
+
 // карта: обычная, пропуск, разворот, +2, дикая, дикая+4
 enum class CardType { NUMBER, SKIP, REVERSE, DRAW_TWO, WILD, WILD_DRAW_FOUR }

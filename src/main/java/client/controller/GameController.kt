@@ -11,28 +11,7 @@ import client.view.MainMenuView
 import javafx.application.Platform
 import javafx.stage.Stage
 import proto.common.Payload
-import proto.dto.Card
-import proto.dto.CardColor
-import proto.dto.ChatMessage
-import proto.dto.ChooseColorRequest
-import proto.dto.CreateRoomRequest
-import proto.dto.CreateRoomResponse
-import proto.dto.DrawCardRequest
-import proto.dto.ErrorMessage
-import proto.dto.GameState
-import proto.dto.GetRoomsRequest
-import proto.dto.JoinRoomRequest
-import proto.dto.JoinRoomResponse
-import proto.dto.LobbyUpdate
-import proto.dto.OkMessage
-import proto.dto.PlayCardRequest
-import proto.dto.PlayerHandUpdate
-import proto.dto.PlayerInfo
-import proto.dto.PongMessage
-import proto.dto.RoomsListPayload
-import proto.dto.PlayerDisplayInfo
-import proto.dto.SayUnoRequest
-import proto.dto.StartGameRequest
+import proto.dto.*
 import java.util.logging.Logger
 
 class GameController(private val stage: Stage) {
@@ -57,11 +36,10 @@ class GameController(private val stage: Stage) {
 
     fun chooseColor(roomId: Long, color: CardColor) {
         val request = ChooseColorRequest(roomId, color)
-        networkClient.sendMessage(request)
+        networkClient.sendPayload(request)
     }
 
     private var onStateChanged: Runnable? = null
-    private var onChatMessage: Runnable? = null
 
     init {
         networkClient.setMessageListener(::handleMessage)
@@ -136,10 +114,6 @@ class GameController(private val stage: Stage) {
         return opponentsInOrder
     }
 
-    fun setOnChatMessage(callback: Runnable?) {
-        onChatMessage = callback
-    }
-
     fun connect(): Boolean = networkClient.connect()
 
     fun disconnect() {
@@ -161,10 +135,18 @@ class GameController(private val stage: Stage) {
         allowStuck: Boolean,
         rules: List<Boolean>
     ) {
-        val request = CreateRoomRequest(roomName, password, maxPlayers, allowStuck)
+        // todo доделать реквест
+        val request = CreateRoomRequest(
+            allowStuck = ,
+            allowStuckCards = ,
+            infinityDrawing = ,
+            maxPlayers = ,
+
+            roomName, password, maxPlayers, allowStuck
+        )
         // FIXME: Отправить request через сетевой клиент
         println("Sending CreateRoomRequest: $request")
-
+        networkClient.sendPayload(request)
         pendingLobbyRules = rules
     }
 
@@ -175,19 +157,15 @@ class GameController(private val stage: Stage) {
                 username = username,
                 avatar = avatar
             )
-            networkClient.sendMessage(request)
+            networkClient.sendPayload(request)
         } else {
             System.err.println("Client is not connected. Cannot join room.")
         }
     }
 
-    fun getRooms() {
-        networkClient.sendMessage(GetRoomsRequest())
-    }
-
     fun startGame(roomId: Long) {
         val request = StartGameRequest(roomId)
-        networkClient.sendMessage(request)
+        networkClient.sendPayload(request)
     }
 
     fun playCard(roomId: Long, chosenColor: CardColor?) {
@@ -201,27 +179,17 @@ class GameController(private val stage: Stage) {
             playerModel.selectedCardIndex,
             chosenColor
         )
-        networkClient.sendMessage(request)
+        networkClient.sendPayload(request)
     }
 
     fun drawCard(roomId: Long) {
         val request = DrawCardRequest(roomId)
-        networkClient.sendMessage(request)
+        networkClient.sendPayload(request)
     }
 
     fun sayUno(roomId: Long) {
         val request = SayUnoRequest(roomId)
-        networkClient.sendMessage(request)
-    }
-
-    fun sendChat(roomId: Long, text: String) {
-        val playerName = playerModel.username.ifEmpty { "Player${playerModel.playerId ?: ""}" }
-        val message = ChatMessage(
-            senderId = playerModel.playerId ?: 0L,
-            senderName = playerName,
-            content = text
-        )
-        networkClient.sendMessage(message)
+        networkClient.sendPayload(request)
     }
 
     private fun handleMessage(payload: Payload) {
@@ -234,7 +202,6 @@ class GameController(private val stage: Stage) {
             is GameState -> handleGameState(payload)
             is PlayerHandUpdate -> handlePlayerHandUpdate(payload)
             is RoomsListPayload -> handleRoomsList(payload)
-            is ChatMessage -> handleChat(payload)
             is ErrorMessage -> handleError(payload)
             is OkMessage -> println("[GameController] OK: ${payload.message}")
             is PongMessage -> println("[GameController] Received PONG")
@@ -250,10 +217,6 @@ class GameController(private val stage: Stage) {
 
         players.add(playerModel)
         createLobby()
-    }
-
-    fun removePlayer(player: Player) {
-        players.remove(player)
     }
 
     private fun handleRoomCreated(response: CreateRoomResponse) {
@@ -308,27 +271,12 @@ class GameController(private val stage: Stage) {
         notifyStateChanged()
     }
 
-    private fun handleChat(chat: ChatMessage) {
-        chatModel.addMessage(chat)
-        notifyChatMessage()
-    }
-
     private fun handleError(error: ErrorMessage) {
         System.err.println("[GameController] Error from server: ${error.message}")
     }
 
     private fun notifyStateChanged() {
         onStateChanged?.let { callback ->
-            try {
-                Platform.runLater(callback)
-            } catch (e: IllegalStateException) {
-                callback.run()
-            }
-        }
-    }
-
-    private fun notifyChatMessage() {
-        onChatMessage?.let { callback ->
             try {
                 Platform.runLater(callback)
             } catch (e: IllegalStateException) {
@@ -351,6 +299,4 @@ class GameController(private val stage: Stage) {
     fun getMyHand(): List<Card> = playerModel.hand.toList()
     fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
     fun setSelectedCardIndex(index: Int) = playerModel.selectCard(index)
-    fun getChatMessages(): List<ChatMessage> = chatModel.getMessages()
-    fun isConnected(): Boolean = networkClient.isConnected()
 }

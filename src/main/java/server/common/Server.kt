@@ -130,12 +130,10 @@ class Server : AutoCloseable {
             when (payload) {
                 is CreateRoomRequest -> handleCreateRoom(connection, clientId, payload)
                 is JoinRoomRequest -> handleJoinRoom(connection, clientId, payload)
-                is GetRoomsRequest -> handleGetRooms(connection)
                 is StartGameRequest -> handleStartGame(connection, clientId, payload)
                 is PlayCardRequest -> handlePlayCard(connection, clientId, payload)
                 is DrawCardRequest -> handleDrawCard(connection, clientId, payload)
                 is SayUnoRequest -> handleSayUno(connection, clientId, payload)
-                is ChatMessage -> handleChat(connection, clientId, payload)
                 is PingMessage -> connection.sendMessage(PongMessage())
                 is PongMessage -> logger.info("Received PONG from client #$clientId")
                 is LeaveRoomRequest -> handleLeaveRoom(connection, clientId, payload)
@@ -173,26 +171,16 @@ class Server : AutoCloseable {
         val user = users.getOrPut(clientId) { UserSession(clientId, "User$clientId", connection) }
         room.addPlayer(user)
 
-        connection.sendMessage(JoinRoomResponse(request.roomId, true))
+        connection.sendMessage(
+            JoinRoomResponse(
+                roomId = request.roomId,
+                isSuccessful = true
+            )
+        )
         broadcastRoomUpdate(request.roomId)
     }
 
-    private fun handleGetRooms(connection: Connection) {
-        val roomsList = rooms.values.map { room ->
-            RoomInfo(
-                roomId = room.id,
-                roomName = room.name,
-                hasPassword = room.password != null,
-                maxPlayers = 4,
-                currentPlayers = room.players.size,
-                status = if (room.gameStarted) RoomStatus.IN_PROGRESS else RoomStatus.WAITING,
-                creatorName = "Creator"
-            )
-        }
-        connection.sendMessage(RoomsListPayload(roomsList))
-    }
-
-    private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
+        private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
             return

@@ -9,8 +9,6 @@ class Chat {
         messages.add(message)
     }
 
-    fun getMessages(): List<ChatMessage> = messages.toList()
-
     fun clear() {
         messages.clear()
     }
