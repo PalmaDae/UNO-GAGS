@@ -19,6 +19,7 @@ class GameController(private val stage: Stage) {
     private val players = mutableListOf<Player>()
     private var onStateChanged: Runnable? = null
     private var currentRoomId: Long? = null
+    public var passwordRoom: String? = null
 
     init {
         networkClient.setMessageListener(::handleMessage)
@@ -113,12 +114,16 @@ class GameController(private val stage: Stage) {
     }
 
     fun createRoom(
+        password: String?,
         maxPlayers: Int,
         allowStuck: Boolean,
         allowStuckCards: Boolean,
         infinityDrawing: Boolean
     ) {
+
+        passwordRoom = password
         val request = CreateRoomRequest(
+            password = password,
             allowStuck = allowStuck,
             allowStuckCards = allowStuckCards,
             infinityDrawing = infinityDrawing,

@@ -83,7 +83,7 @@ class LobbyView(
         val currentPlayers = lobbyState?.players ?: emptyList()
         val myPlayerId = gameController.getMyPlayerId()
 
-        passwordField.text = controller.generatePassword()
+        passwordField.text = gameController.passwordRoom
 
         val isHost = currentPlayers.any { it.userId == myPlayerId && it.isOwner }
 
