@@ -1,7 +1,6 @@
 package client.controller
 
 import client.common.NetworkClient
-import client.model.Chat
 import client.model.GameStateModel
 import client.model.Player
 import client.model.Room
@@ -19,7 +18,6 @@ class GameController(private val stage: Stage) {
     private val playerModel = Player()
     private val roomModel = Room()
     private val gameStateModel = GameStateModel()
-    private val chatModel = Chat()
     private var pendingLobbyRules: List<Boolean>? = null
 
     companion object {
@@ -125,7 +123,6 @@ class GameController(private val stage: Stage) {
         playerModel.reset()
         roomModel.reset()
         gameStateModel.reset()
-        chatModel.clear()
     }
 
     fun createRoom(

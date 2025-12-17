@@ -35,6 +35,16 @@ object ResourceLoader {
         }
     }
 
+    fun loadAvatar(avatarName: String): Image {
+        val path = "/avatars/$avatarName"
+        val resource = javaClass.getResource(path)
+        return if (resource != null) {
+            Image(resource.toExternalForm())
+        } else {
+            Image(javaClass.getResource("/avatars/default.png").toExternalForm())
+        }
+    }
+
     fun loadCardImage(color: String, value: String): Image {
         val path = getCardImagePath(color, value)
         return try {

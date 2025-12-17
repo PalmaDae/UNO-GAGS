@@ -1,5 +1,6 @@
 package client.view
 
+import client.common.ResourceLoader
 import client.controller.GameController
 import client.controller.PlayerController
 import javafx.geometry.Pos
@@ -13,6 +14,8 @@ import javafx.scene.paint.Color
 import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
 import client.config.StageConfig
+import javafx.scene.control.ToggleButton
+import javafx.scene.image.ImageView
 
 class PlayerView(
     private val stage: Stage,
@@ -40,29 +43,49 @@ class PlayerView(
             styleClass.add("uno-input")
         }
 
-        val testAvatar1 = Rectangle(50.0, 50.0, Color.BLUE)
-        val testAvatar2 = Rectangle(50.0, 50.0, Color.RED)
-        val testAvatar3 = Rectangle(50.0, 50.0, Color.GREEN)
+        val avatarGroup = ToggleGroup()
+        val avatarsBox = HBox(15.0).apply {
+            alignment = Pos.CENTER
+            style = "-fx-padding: 10;"
+        }
+
+        val avatarFiles = listOf("avatar1.jpg","avatar2.jpg","avatar3.jpg","avatar4.jpg")
+
+        avatarFiles.forEach { fileName ->
+            val avatarImage = ResourceLoader.loadAvatar(fileName)
+            val imageView = ImageView(avatarImage).apply {
+                fitWidth = 60.0
+                fitHeight = 60.0
+            }
+
+            val toggleButton = ToggleButton().apply {
+                graphic = imageView
+                toggleGroup = avatarGroup
+                userData = fileName
+                styleClass.add("avatar-selector")
+            }
+            avatarsBox.children.add(toggleButton)
+        }
 
         var selectedAvatar: Rectangle? = null
 
-        val avatarsBox = HBox(10.0, testAvatar1, testAvatar2, testAvatar3).apply { alignment = Pos.CENTER }
+        avatarGroup.toggles.firstOrNull()?.isSelected = true
 
-        listOf(testAvatar1, testAvatar2, testAvatar3).forEach { rect ->
-            rect.setOnMouseClicked { selectedAvatar = rect }
-        }
-
-        val createButton = Button("Create and go play").apply {
+        val createButton = Button(if (isJoin) "Join and Play" else "Create and Play").apply {
             setOnAction {
                 val name = nameField.text
-                val avatar = selectedAvatar?.id ?: "default"
-                playerController.createPlayer(name, avatar)
+                val selectedToggle = avatarGroup.selectedToggle as? ToggleButton
+                val avatarFileName = selectedToggle?.userData as? String ?: "avatar1.jpg"
+
+                if (name.isNotBlank()) {
+                    playerController.createPlayer(name, avatarFileName)
+                }
             }
         }
 
         val backButton = Button("Back").apply { setOnAction { playerController.backButton() } }
 
-        val root = VBox(16.0, nameField, createButton, backButton, avatarsBox).apply {
+        val root = VBox(16.0, nameField, avatarsBox, createButton, backButton).apply {
             alignment = Pos.CENTER
             style = "-fx-padding: 24;"
         }

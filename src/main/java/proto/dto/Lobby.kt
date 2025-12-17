@@ -69,6 +69,7 @@ data class LobbyUpdate(
 data class PlayerInfo(
     val userId: Long,
     val username: String,
+    val avatar: String,
     val isOwner: Boolean,
     val isReady: Boolean,
     val cardCount: Int,

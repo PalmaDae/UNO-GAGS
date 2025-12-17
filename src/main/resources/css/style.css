@@ -125,3 +125,28 @@
     -fx-font-size: 14pt;
     -fx-text-fill: #cccccc;
 }
+/* Кнопка выбора аватарки */
+.avatar-selector {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-border-width: 3px;
+    -fx-border-radius: 5px;
+    -fx-cursor: hand;
+    -fx-padding: 5;
+}
+
+/* Эффект при наведении */
+.avatar-selector:hover {
+    -fx-background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Стиль когда аватарка ВЫБРАНА */
+.avatar-selector:selected {
+    -fx-border-color: #ffaa00; /* Оранжевая рамка */
+    -fx-background-color: rgba(255, 170, 0, 0.2);
+}
+
+/* Убираем синий фокус вокруг кнопок */
+.avatar-selector:focused {
+    -fx-background-insets: 0;
+}
