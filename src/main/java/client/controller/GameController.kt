@@ -23,8 +23,8 @@ class GameController(private val stage: Stage) {
     private var onStateChanged: Runnable? = null
     private var currentRoomId: Long? = null
     var passwordRoom: String? = null
-    private var currentUserName: String = "Guest"
-    private var currentUserAvatar: String = "default.png"
+    var currentUserName: String = "Guest"
+    var currentUserAvatar: String = "default.png"
 
     fun setUserData(name: String, avatar: String) {
         this.currentUserName = name

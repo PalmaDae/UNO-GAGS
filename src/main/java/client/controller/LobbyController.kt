@@ -13,13 +13,6 @@ class LobbyController(private val gameController: GameController) {
         }
     }
 
-    fun generatePassword(): String {
-        val chars = "0123456789"
-        return (1..5)
-            .map { chars.random() }
-            .joinToString("")
-    }
-
     fun copyPassword(password: String) {
         val clipboard = Clipboard.getSystemClipboard()
         val content = ClipboardContent()
