@@ -1,7 +1,5 @@
 package proto.dto
 
-import proto.common.Payload
-
 data class CreateRoomRequest(
     val password: String? = null,
     val maxPlayers: Int = 4,

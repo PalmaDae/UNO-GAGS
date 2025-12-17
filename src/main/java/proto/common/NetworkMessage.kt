@@ -1,5 +1,7 @@
 package proto.common
 
+import proto.dto.Payload
+
 data class NetworkMessage
 @JvmOverloads
 constructor (

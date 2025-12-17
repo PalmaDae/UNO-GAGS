@@ -1,6 +1,6 @@
 package server.common
 
-import proto.common.Payload
+import proto.dto.Payload
 import java.io.*
 import java.net.Socket
 

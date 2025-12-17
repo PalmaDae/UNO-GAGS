@@ -2,16 +2,8 @@ package client.controller
 
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
-import javafx.stage.Stage
-class LobbyController(private val stage: Stage, private val gameController: GameController) {
 
-    fun kickPlayer(playerId: Long) {
-        val roomId = gameController.getCurrentRoomId()
-        if (roomId != null) {
-            // gameController.kickPlayer(roomId, playerId)
-            println("Sending kick request for player ID: $playerId in room $roomId")
-        }
-    }
+class LobbyController(private val gameController: GameController) {
 
     fun startGame() {
         val roomId = gameController.getCurrentRoomId()
@@ -28,7 +20,6 @@ class LobbyController(private val stage: Stage, private val gameController: Game
             .joinToString("")
     }
 
-
     fun copyPassword(password: String) {
         val clipboard = Clipboard.getSystemClipboard()
         val content = ClipboardContent()
@@ -37,7 +28,4 @@ class LobbyController(private val stage: Stage, private val gameController: Game
         println("Room ID copied: $password")
     }
 
-    fun deleteLobby() {
-        println("Sending Delete Lobby request...")
-    }
 }

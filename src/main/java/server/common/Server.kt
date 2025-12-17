@@ -1,6 +1,6 @@
 package server.common
 
-import proto.common.Payload
+import proto.dto.Payload
 import proto.dto.*
 import server.game.GameSession
 import server.game.PlayerState

@@ -13,14 +13,14 @@ object Main {
 
         try {
             Server().use { server ->
-                Runtime.getRuntime().addShutdownHook(Thread(Runnable {
+                Runtime.getRuntime().addShutdownHook(Thread {
                     logger.log(Level.INFO, "Shutdown hook triggered. Closing server...")
                     try {
                         server.close()
                     } catch (e: Exception) {
                         logger.log(Level.SEVERE, "Error closing server from shutdown hook", e)
                     }
-                }))
+                })
                 server.listen()
             }
         } catch (e: Exception) {
