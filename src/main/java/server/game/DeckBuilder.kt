@@ -8,47 +8,98 @@ import java.util.*
 object DeckBuilder {
     fun createStandardDeck(): MutableList<Card?> {
         val deck: MutableList<Card?> = ArrayList<Card?>()
-        val colors = arrayOf<CardColor?>(CardColor.RED, CardColor.BLUE, CardColor.GREEN, CardColor.YELLOW)
+        val colors = arrayOf(CardColor.RED, CardColor.BLUE, CardColor.GREEN, CardColor.YELLOW)
 
-        for (color in colors) {
-            deck.add(Card(generateCardId(color!!, CardType.NUMBER, 0), color, CardType.NUMBER, 0))
+        colors.forEach { color ->
+            deck.add(
+                Card(
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.NUMBER,
+                        number = 0
+                    ),
+                    color = color,
+                    type = CardType.NUMBER,
+                    number = 0
+                )
+            )
 
-            for (number in 1..9) {
+            repeat(9) { number ->
                 deck.add(
                     Card(
-                        generateCardId(color, CardType.NUMBER, number),
-                        color,
-                        CardType.NUMBER,
-                        number
+                        id = generateCardId(
+                            color = color,
+                            type = CardType.NUMBER,
+                            number = number
+                        ),
+                        color = color,
+                        type = CardType.NUMBER,
+                        number = number
                     )
                 )
+
                 deck.add(
                     Card(
-                        generateCardId(color, CardType.NUMBER, number) + "_2",
-                        color,
-                        CardType.NUMBER,
-                        number
+                        id = generateCardId(
+                            color = color,
+                            type = CardType.NUMBER,
+                            number = number
+                        ) + "_2",
+                        color = color,
+                        type = CardType.NUMBER,
+                        number = number
                     )
                 )
             }
 
-            deck.add(Card(generateCardId(color, CardType.SKIP, null), color, CardType.SKIP, null))
             deck.add(
                 Card(
-                    generateCardId(color, CardType.SKIP, null) + "_2",
-                    color,
-                    CardType.SKIP,
-                    null
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.SKIP,
+                        number = null
+                    ),
+                    color = color,
+                    type = CardType.SKIP,
+                    number = null
+                )
+            )
+            deck.add(
+                Card(
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.SKIP,
+                        number = null
+                    ) + "_2",
+                    color = color,
+                    type = CardType.SKIP,
+                    number = null
                 )
             )
 
-            deck.add(Card(generateCardId(color, CardType.REVERSE, null), color, CardType.REVERSE, null))
             deck.add(
                 Card(
-                    generateCardId(color, CardType.REVERSE, null) + "_2",
-                    color,
-                    CardType.REVERSE,
-                    null
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.REVERSE,
+                        number = null
+                    ),
+                    color = color,
+                    type = CardType.REVERSE,
+                    number = null
+                )
+            )
+
+            deck.add(
+                Card(
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.REVERSE,
+                        number = null
+                    ) + "_2",
+                    color = color,
+                    type = CardType.REVERSE,
+                    number = null
                 )
             )
 
@@ -60,27 +111,50 @@ object DeckBuilder {
                     null
                 )
             )
+
             deck.add(
                 Card(
-                    generateCardId(color, CardType.DRAW_TWO, null) + "_2",
-                    color,
-                    CardType.DRAW_TWO,
-                    null
+                    id = generateCardId(
+                        color = color,
+                        type = CardType.DRAW_TWO,
+                        number = null
+                    ) + "_2",
+                    color = color,
+                    type = CardType.DRAW_TWO,
+                    number = null
                 )
             )
         }
 
-        for (i in 1..4) {
-            deck.add(Card("WILD_$i", CardColor.WILD, CardType.WILD, null))
-            deck.add(Card("WILD_DRAW_FOUR_$i", CardColor.WILD, CardType.WILD_DRAW_FOUR, null))
+        repeat(4) { index ->
+            deck.add(
+                Card(
+                    id = "WILD_$index",
+                    color = CardColor.WILD,
+                    type = CardType.WILD,
+                    number = null
+                )
+            )
+
+            deck.add(
+                Card(
+                    id = "WILD_DRAW_FOUR_$index",
+                    color = CardColor.WILD,
+                    type = CardType.WILD_DRAW_FOUR,
+                    number = null
+                )
+            )
         }
 
         deck.shuffle()
-
         return deck
     }
 
-    private fun generateCardId(color: CardColor, type: CardType, number: Int?): String {
+    private fun generateCardId(
+        color: CardColor,
+        type: CardType,
+        number: Int?
+    ): String {
         val id = StringBuilder()
         id.append(color.name).append("_")
         id.append(type.name)
@@ -93,17 +167,24 @@ object DeckBuilder {
     fun createDeckPiles(): DeckPiles {
         val fullDeck = createStandardDeck()
 
-        val drawPile: MutableList<Card?> = ArrayList<Card?>(fullDeck.subList(1, fullDeck.size))
+        val drawPile = ArrayList(fullDeck.subList(1, fullDeck.size))
 
-        val discardPile: MutableList<Card?> = ArrayList<Card?>()
+        val discardPile = ArrayList<Card?>()
         discardPile.add(fullDeck[0])
 
         return DeckPiles(drawPile, discardPile)
     }
 
-    class DeckPiles(drawPile: MutableList<Card?>, discardPile: MutableList<Card?>) {
-        private val drawPile: MutableList<Card?> = ArrayList<Card?>(drawPile)
-        private val discardPile: MutableList<Card?> = ArrayList<Card?>(discardPile)
+    class DeckPiles(
+        private val drawPile: MutableList<Card?>,
+        private val discardPile: MutableList<Card?>
+    ) {
+
+        val topCard: Card
+            get() {
+                check(!discardPile.isEmpty()) { "Discard pile is empty" }
+                return discardPile[discardPile.size - 1]!!
+            }
 
         fun drawCard(): Card? {
             if (drawPile.isEmpty()) {
@@ -118,12 +199,6 @@ object DeckBuilder {
         fun playCard(card: Card?) {
             discardPile.add(card)
         }
-
-        val topCard: Card
-            get() {
-                check(!discardPile.isEmpty()) { "Discard pile is empty" }
-                return discardPile[discardPile.size - 1]!!
-            }
 
         private fun reshuffleDiscardIntoDraw() {
             if (discardPile.size <= 1) {

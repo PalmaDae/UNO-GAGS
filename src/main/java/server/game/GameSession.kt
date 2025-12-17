@@ -4,7 +4,8 @@ import proto.dto.*
 import server.game.DeckBuilder.DeckPiles
 
 class GameSession(
-    val roomId: Long, initialPlayers: MutableList<PlayerState>
+    val roomId: Long,
+    initialPlayers: MutableList<PlayerState>
 ) {
     internal val players = HashMap<Long?, PlayerState>()
     private val deckPiles: DeckPiles = DeckBuilder.createDeckPiles()
@@ -17,6 +18,36 @@ class GameSession(
         private set
     private var chosenColor: CardColor? = null
 
+    val currentPlayerId: Long
+        get() = playerOrder[currentPlayerIndex]!!
+
+    val currentCard: Card
+        get() = deckPiles.topCard
+
+    val gameState: GameState
+        get() {
+            val playerInfos: MutableMap<Long, PlayerGameInfo> = HashMap()
+
+            for (player in players.values) {
+                val info = PlayerGameInfo(
+                    username = player.username!!,
+                    cardCount = player.cardCount,
+                    hasUno = player.hasDeclaredUno,
+                    avatar = player.avatar // Мы добавили это ранее
+                )
+                playerInfos.put(player.playerId, info)
+            }
+
+            return GameState(
+                roomId = roomId,
+                players = playerInfos,
+                currentCard = this.currentCard,
+                currentPlayerId = this.currentPlayerId,
+                direction = direction,
+                gamePhase = gamePhase
+            )
+        }
+
     init {
         for (player in initialPlayers) {
             players.put(player.playerId, player)
@@ -27,24 +58,15 @@ class GameSession(
         dealInitialCards()
     }
 
-
     private fun dealInitialCards() {
         for (player in players.values) {
-            for (i in 0..6) {
+            repeat(6) {
                 player.addCard(deckPiles.drawCard())
             }
         }
     }
 
-    val currentPlayerId: Long
-        get() = playerOrder[currentPlayerIndex]!!
-
-    val currentCard: Card
-        get() = deckPiles.topCard
-
     fun canPlayCard(card: Card): Boolean {
-        val currentCard = this.currentCard
-
         // Wild cards can always be played
         if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
             return true
@@ -73,9 +95,8 @@ class GameSession(
         }
 
         // Match against the current card's number (for number cards)
-        if (card.type == CardType.NUMBER && currentCard.type == CardType.NUMBER &&
-            card.number == currentCard.number
-        ) return true else return false
+        return card.type == CardType.NUMBER && currentCard.type == CardType.NUMBER &&
+                card.number == currentCard.number
     }
 
     fun playCard(playerId: Long, cardIndex: Int, chosenColor: CardColor?) {
@@ -85,17 +106,14 @@ class GameSession(
         val player: PlayerState = players.get(playerId)!!
         requireNotNull(player) { "Player not found: $playerId" }
 
-
         // Get the card to play
         val hand = player.hand
         require(!(cardIndex < 0 || cardIndex >= hand.size)) { "Invalid card index: $cardIndex" }
 
         val card = hand[cardIndex]
 
-
         // Validate the card can be played
         check(canPlayCard(card)) { "Cannot play this card" }
-
 
         // Check UNO rules if player has 2 cards after playing
         val willHaveOneCardLeft = hand.size == 2
@@ -105,11 +123,9 @@ class GameSession(
             player.addCard(deckPiles.drawCard())
         }
 
-
         // Remove and play the card
         val playedCard = player.removeCard(cardIndex)
         deckPiles.playCard(playedCard)
-
 
         // Handle wild card color choice
         if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
@@ -118,14 +134,11 @@ class GameSession(
                 return  // Wait for color choice
             }
             this.chosenColor = chosenColor
-        } else {
+        } else
             this.chosenColor = null // Reset color choice for non-wild cards
-        }
-
 
         // Apply card effects
         applyCardEffect(playedCard!!)
-
 
         // Check for win condition
         if (player.cardCount == 0) {
@@ -133,18 +146,15 @@ class GameSession(
             return
         }
 
-
         // Move to next player
         moveToNextPlayer()
         gamePhase = GamePhase.WAITING_TURN
     }
 
-
     fun setChosenColor(color: CardColor?) {
         check(gamePhase == GamePhase.CHOOSING_COLOR) { "Not waiting for color choice" }
 
         this.chosenColor = color
-
 
         // Apply the wild card effect and move to next player
         val currentCard = this.currentCard
@@ -152,7 +162,6 @@ class GameSession(
         moveToNextPlayer()
         gamePhase = GamePhase.WAITING_TURN
     }
-
 
     private fun applyCardEffect(card: Card) {
         when (card.type) {
@@ -180,17 +189,15 @@ class GameSession(
             CardType.WILD_DRAW_FOUR -> {
                 moveToNextPlayer()
                 val drawFourTarget: PlayerState = players.get(this.currentPlayerId)!!
-                for (i in 0 until 4) {
+                repeat(4) {
                     drawFourTarget.addCard(deckPiles.drawCard())
                 }
                 moveToNextPlayer()
             }
 
-
             CardType.WILD, CardType.NUMBER, CardType.BACK -> {}
         }
     }
-
 
     private fun moveToNextPlayer() {
         currentPlayerIndex = if (direction == GameDirection.CLOCKWISE)
@@ -198,7 +205,6 @@ class GameSession(
         else
             (currentPlayerIndex - 1 + playerOrder.size) % playerOrder.size
     }
-
 
     fun drawCard(playerId: Long) {
         check(playerId == this.currentPlayerId) { "Not your turn" }
@@ -210,7 +216,6 @@ class GameSession(
         gamePhase = GamePhase.WAITING_TURN
     }
 
-
     fun sayUno(playerId: Long) {
         val player: PlayerState = players.get(playerId)!!
         requireNotNull(player) { "Player not found: $playerId" }
@@ -218,27 +223,4 @@ class GameSession(
         player.declareUno()
     }
 
-    val gameState: GameState
-        get() {
-            val playerInfos: MutableMap<Long, PlayerGameInfo> = HashMap()
-
-            for (player in players.values) {
-                val info = PlayerGameInfo(
-                    username = player.username!!,
-                    cardCount = player.cardCount,
-                    hasUno = player.hasDeclaredUno,
-                    avatar = player.avatar // Мы добавили это ранее
-                )
-                playerInfos.put(player.playerId, info)
-            }
-
-            return GameState(
-                roomId = roomId,
-                players = playerInfos,
-                currentCard = this.currentCard,
-                currentPlayerId = this.currentPlayerId,
-                direction = direction,
-                gamePhase = gamePhase
-            )
-        }
 }
