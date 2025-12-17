@@ -64,8 +64,12 @@ class Server : AutoCloseable {
             return
         }
 
-        val initialPlayerStates = room.players.map { userSession ->
-            PlayerState(userSession.id, userSession.username)
+        val initialPlayerStates = room.players.map { player ->
+            PlayerState(
+                playerId = player.id,
+                username = player.username,
+                avatar = player.avatar
+            )
         }.toMutableList()
 
         val gameSession = GameSession(request.roomId, initialPlayerStates)

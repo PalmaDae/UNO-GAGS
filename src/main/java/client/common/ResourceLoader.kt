@@ -6,20 +6,22 @@ import proto.dto.CardColor
 object ResourceLoader {
     private const val RESOURCE_BASE = "/images/cards/"
 
-    private fun getCardImagePath(color: String, value: String): String {
-        if (value == "BACK") {
-            return "${RESOURCE_BASE}back.png"
-        }
+    private fun getCardImagePath(card: proto.dto.Card): String {
+        val color = card.color.name
+        val value = card.type.name
+
+        if (value == "BACK") return "${RESOURCE_BASE}back.png"
 
         val colorDir = if (color == "WILD" || color == "NONE") "wild" else color.lowercase()
 
         val fileName = when (value) {
-            "PLUS_TWO" -> "+2.png"
+            "NUMBER" -> "${card.number}.png"
+            "PLUS_TWO", "DRAW_TWO" -> "+2.png"
             "REVERSE" -> "reverse.png"
             "SKIP" -> "skip.png"
             "WILD_DRAW_FOUR" -> "+4.png"
             "WILD" -> "wildcard.png"
-            else -> "$value.png"
+            else -> "${value.lowercase()}.png"
         }
 
         return "$RESOURCE_BASE$colorDir/$fileName"
@@ -50,19 +52,22 @@ object ResourceLoader {
         }
     }
 
-    fun loadCardImage(color: String, value: String): Image {
-        val path = getCardImagePath(color, value)
+    fun loadCardImage(card: proto.dto.Card): Image {
+        val path = getCardImagePath(card)
+        println("DEBUG: Loading Card: ${card.color}_${card.type} (num: ${card.number}) -> Path: $path")
+
         return try {
             val stream = javaClass.getResourceAsStream(path)
             if (stream == null) {
                 println("Error: Resource not found at path: $path")
-                Image(javaClass.getResourceAsStream("/images/cards/back.png"))
+                val backStream = javaClass.getResourceAsStream("${RESOURCE_BASE}back.png")
+                if (backStream != null) Image(backStream) else Image("about:blank")
             } else {
                 Image(stream)
             }
         } catch (e: Exception) {
             println("Error loading image $path: ${e.message}")
-            Image(javaClass.getResourceAsStream("/images/cards/back.png"))
+            Image("about:blank")
         }
     }
 }

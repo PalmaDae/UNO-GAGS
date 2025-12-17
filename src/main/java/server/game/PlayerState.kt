@@ -4,7 +4,8 @@ import proto.dto.Card
 
 class PlayerState(
     val playerId: Long,
-    val username: String?
+    val username: String?,
+    val avatar: String = "default.png"
 ) {
     var hasDeclaredUno = false
         private set

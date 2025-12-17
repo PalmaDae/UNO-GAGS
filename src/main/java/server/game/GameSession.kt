@@ -160,39 +160,34 @@ class GameSession(
                 moveToNextPlayer()
 
             CardType.REVERSE -> {
-                // Reverse direction
-                direction =
-                    if (direction == GameDirection.CLOCKWISE) GameDirection.COUNTER_CLOCKWISE else GameDirection.CLOCKWISE
-                // In 2-player game, reverse acts like skip
+                direction = if (direction == GameDirection.CLOCKWISE)
+                    GameDirection.COUNTER_CLOCKWISE
+                else
+                    GameDirection.CLOCKWISE
                 if (players.size == 2) {
                     moveToNextPlayer()
                 }
             }
 
-
             CardType.DRAW_TWO -> {
-                // Следующий игрок берет 2 карты и пропускает ход.
-                moveToNextPlayer() // Переход к наказанному игроку
+                moveToNextPlayer()
                 val drawTwoTarget: PlayerState = players.get(this.currentPlayerId)!!
                 drawTwoTarget.addCard(deckPiles.drawCard())
                 drawTwoTarget.addCard(deckPiles.drawCard())
-
-                moveToNextPlayer() // <--- ДОБАВЛЕНО: Переход к игроку, который делает ход
+                moveToNextPlayer()
             }
 
             CardType.WILD_DRAW_FOUR -> {
                 moveToNextPlayer()
                 val drawFourTarget: PlayerState = players.get(this.currentPlayerId)!!
-                var i = 0
-                while (i < 4) {
+                for (i in 0 until 4) {
                     drawFourTarget.addCard(deckPiles.drawCard())
-                    i++
                 }
-
                 moveToNextPlayer()
             }
 
-            CardType.WILD, CardType.NUMBER -> {}
+
+            CardType.WILD, CardType.NUMBER, CardType.BACK -> {}
         }
     }
 
@@ -229,20 +224,21 @@ class GameSession(
 
             for (player in players.values) {
                 val info = PlayerGameInfo(
-                    player.username!!,
-                    player.cardCount,
-                    player.hasDeclaredUno
+                    username = player.username!!,
+                    cardCount = player.cardCount,
+                    hasUno = player.hasDeclaredUno,
+                    avatar = player.avatar // Мы добавили это ранее
                 )
                 playerInfos.put(player.playerId, info)
             }
 
             return GameState(
-                roomId,
-                playerInfos,
-                this.currentCard,
-                this.currentPlayerId,
-                direction,
-                gamePhase
+                roomId = roomId,
+                players = playerInfos,
+                currentCard = this.currentCard,
+                currentPlayerId = this.currentPlayerId,
+                direction = direction,
+                gamePhase = gamePhase
             )
         }
 }

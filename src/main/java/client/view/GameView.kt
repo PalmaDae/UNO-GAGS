@@ -17,6 +17,7 @@ import javafx.scene.text.Font
 import javafx.stage.Stage
 import proto.dto.Card
 import proto.dto.CardColor
+import proto.dto.CardType
 import proto.dto.GamePhase
 import proto.dto.PlayerDisplayInfo
 
@@ -34,6 +35,22 @@ class GameView(
     private val topPlayerBox = HBox(8.0).apply { alignment = Pos.CENTER }
     private val leftPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_LEFT }
     private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
+
+    private fun autoDetectMyId() {
+        // Используем свойство напрямую (без скобок)
+        if (gameController.myPlayerId == null) {
+            val myName = gameController.currentUserName
+            val gameState = gameController.getCurrentGameState()
+
+            // Ищем в Map: players - это Map<Long, PlayerGameInfo>
+            val meInGame = gameState?.players?.entries?.find { it.value.username == myName }
+
+            if (meInGame != null) {
+                gameController.myPlayerId = meInGame.key
+                println("ID auto-detected: ${meInGame.key}")
+            }
+        }
+    }
 
     init {
         gameController.setOnStateChanged {
@@ -112,10 +129,12 @@ class GameView(
 
         if (opponents.isEmpty()) return
 
-        gameController.getMyPlayerId() ?: return
+        gameController.myPlayerId ?: return
         val currentTurnPlayerId = gameController.getCurrentGameState()?.currentPlayerId
 
         val sortedOpponents = gameController.getOpponentsInOrder()
+
+        println(sortedOpponents.size)
 
         when (sortedOpponents.size) {
             1 -> {
@@ -149,8 +168,11 @@ class GameView(
             padding = Insets(5.0)
         }
 
+        val backCard = Card(id = "back", color = CardColor.WILD, type = CardType.BACK)
+        val backImage = ResourceLoader.loadCardImage(backCard)
+
         val cardImages = (0 until minOf(player.cardCount, 5)).map {
-            ImageView(ResourceLoader.loadCardImage("NONE", "BACK")).apply {
+            ImageView(backImage).apply {
                 fitWidth = if (isVertical) SMALL_CARD_WIDTH else SMALL_CARD_WIDTH * 0.7
                 fitHeight = if (isVertical) SMALL_CARD_HEIGHT else SMALL_CARD_HEIGHT * 0.7
             }
@@ -223,10 +245,7 @@ class GameView(
     private fun renderPlayerHand(hand: List<Card>) {
         playerHandBox.children.clear()
         hand.forEachIndexed { index, card ->
-            val cardImage = ResourceLoader.loadCardImage(
-                card.color.name,
-                card.type.name
-            )
+            val cardImage = ResourceLoader.loadCardImage(card)
 
             val cardImageView = ImageView(cardImage).apply {
                 fitWidth = CARD_WIDTH
@@ -287,47 +306,37 @@ class GameView(
 
 
     fun updateUI() {
+        autoDetectMyId()
+
         val gameState = gameController.getCurrentGameState()
         val myHand = gameController.getMyHand()
-        val myPlayerId = gameController.getMyPlayerId()
+        val myPlayerId = gameController.myPlayerId
 
-        if (gameState == null || myPlayerId == null) return
+        if (gameState == null || myPlayerId == null) {
+            gameStatusLabel.text = "Loading game data... (ID: ${myPlayerId ?: "detecting..."})"
+            return
+        }
 
         val currentCard = gameState.currentCard
         val isMyTurn = gameState.currentPlayerId == myPlayerId
 
-        val cardColorName = currentCard?.color?.name ?: "NONE"
-        val cardValueName = currentCard?.type?.name ?: "BACK"
-
         val cardColor = currentCard?.color ?: CardColor.WILD
-        val cssColor = ResourceLoader.toCssColor(cardColor)
-        root.style = "-fx-background-color: derive($cssColor, -60%); -fx-padding: 20;"
+        root.style = "-fx-background-color: derive(${ResourceLoader.toCssColor(cardColor)}, -60%); -fx-padding: 20;"
 
-        centerCardDisplay.image = ResourceLoader.loadCardImage(
-            cardColorName,
-            cardValueName
-        )
+        val displayCard = currentCard ?: Card(id = "none", color = CardColor.WILD, type = CardType.BACK)
+        centerCardDisplay.image = ResourceLoader.loadCardImage(displayCard)
 
-        val turnStatus = if (isMyTurn) " (YOUR TURN)" else ""
-        gameStatusLabel.text = "Current Player: ${gameState.currentPlayerId}$turnStatus"
+        val turnStatus = if (isMyTurn) " ★ YOUR TURN ★" else ""
+        gameStatusLabel.text = "Current Player ID: ${gameState.currentPlayerId}$turnStatus"
+        if (isMyTurn) gameStatusLabel.style = "-fx-text-fill: #FFD700; -fx-font-weight: bold;"
+        else gameStatusLabel.style = "-fx-text-fill: white;"
 
-        val sortedOpponents = gameController.getOpponentsInOrder()
-        renderOpponents(sortedOpponents)
-
+        renderOpponents(gameController.getOpponentsInOrder())
         renderPlayerHand(myHand)
 
-        val selectedCardIndex = gameController.getSelectedCardIndex()
-        val selectedCard = myHand.getOrNull(selectedCardIndex)
-
-        val selectedIsWild = selectedCard != null &&
-                selectedCard.type.name.contains("WILD")
-
-        if (isMyTurn && (gameState.gamePhase == GamePhase.CHOOSING_COLOR || selectedIsWild)) {
-
-            showColorChooser(true)
-
-            if (selectedIsWild) {
-                gameController.setSelectedCardIndex(-1)
+        if (isMyTurn && gameState.gamePhase == GamePhase.CHOOSING_COLOR) {
+            Platform.runLater {
+                showColorChooser(true)
             }
         }
     }

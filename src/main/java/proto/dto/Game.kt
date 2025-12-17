@@ -27,7 +27,8 @@ data class PlayerDisplayInfo(
 data class PlayerGameInfo(
     val username: String,
     val cardCount: Int,
-    val hasUno: Boolean = false
+    val hasUno: Boolean = false,
+    val avatar: String
 ) : Payload
 
 // направление: по часовой и против часовой
@@ -74,4 +75,4 @@ data class Card(
 enum class CardColor { RED, BLUE, GREEN, YELLOW, WILD }
 
 // карта: обычная, пропуск, разворот, +2, дикая, дикая+4
-enum class CardType { NUMBER, SKIP, REVERSE, DRAW_TWO, WILD, WILD_DRAW_FOUR }
+enum class CardType { NUMBER, SKIP, REVERSE, DRAW_TWO, WILD, WILD_DRAW_FOUR, BACK }

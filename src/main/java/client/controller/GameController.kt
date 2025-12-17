@@ -25,6 +25,8 @@ class GameController(private val stage: Stage) {
     var passwordRoom: String? = null
     var currentUserName: String = "Guest"
     var currentUserAvatar: String = "default.png"
+    var myPlayerId: Long? = null
+
 
     fun setUserData(name: String, avatar: String) {
         this.currentUserName = name
@@ -79,7 +81,7 @@ class GameController(private val stage: Stage) {
 
     fun getOpponentsInOrder(): List<PlayerDisplayInfo> {
         val gameState = getCurrentGameState() ?: return emptyList()
-        val myPlayerId = getMyPlayerId() ?: return emptyList()
+        val myPlayerId = myPlayerId ?: return emptyList()
 
         val allPlayersMap = gameState.players
 
@@ -252,18 +254,32 @@ class GameController(private val stage: Stage) {
 
     private fun handleLobbyUpdate(update: LobbyUpdate) {
         roomModel.updateLobby(update)
+        if (myPlayerId == null) {
+            val me = update.players.find { it.username == currentUserName }
+            if (me != null) {
+                myPlayerId = me.userId
+                playerModel.playerId = me.userId
+                println("[GameController] ID auto-detected from Lobby: $myPlayerId")
+            }
+        }
+
         println("[GameController] Lobby updated, players: ${update.players.size}")
         notifyStateChanged()
     }
 
     private fun handleGameState(newState: GameState) {
         gameStateModel.updateState(newState)
-        println("[GameController] Game state updated")
-        println("  Current player: ${newState.currentPlayerId}")
-        println("  Current card: ${newState.currentCard}")
-        println("  Players: ${newState.players.size}")
-        if (stage.scene != null && stage.scene.root.javaClass.simpleName != "GameViewRoot") {
-            Platform.runLater {
+        if (myPlayerId == null) {
+            val me = newState.players.entries.find { it.value.username == currentUserName }
+            if (me != null) {
+                myPlayerId = me.key
+                playerModel.playerId = me.key
+                println("[GameController] ID auto-detected from GameState: $myPlayerId")
+            }
+        }
+
+        Platform.runLater {
+            if (stage.scene?.root?.styleClass?.contains("game-screen") != true) {
                 val gameView = GameView(stage, this)
                 stage.scene = gameView.scene
             }
@@ -296,7 +312,6 @@ class GameController(private val stage: Stage) {
     fun getCurrentGameState(): GameState? = gameStateModel.gameState
     fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
     fun getCurrentRoomId(): Long? = roomModel.currentRoomId
-    fun getMyPlayerId(): Long? = playerModel.playerId
     fun getMyHand(): List<Card> = playerModel.hand.toList()
     fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
     fun setSelectedCardIndex(index: Int) = playerModel.selectCard(index)
