@@ -3,6 +3,7 @@ package proto.dto
 import proto.common.Payload
 
 data class CreateRoomRequest(
+    val password: String? = null,
     val maxPlayers: Int = 4,
     val allowStuck: Boolean = false, // stack +2 or +4
     val allowStuckCards: Boolean = false, // stack numeric cards
@@ -42,10 +43,6 @@ data class DrawCardRequest(
 data class SayUnoRequest(
     val roomId: Long
 ) : Payload
-
-//data class GetRoomsRequest(
-//    val dummy: String = ""
-//) : Payload
 
 data class RoomInfo(
     val roomId: Long,

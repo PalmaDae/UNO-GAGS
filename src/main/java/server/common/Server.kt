@@ -150,19 +150,41 @@ class Server : AutoCloseable {
 
     private fun handleCreateRoom(connection: Connection, clientId: Long, request: CreateRoomRequest) {
         val roomId = nextRoomId++
-        val room = ServerRoom(roomId, request.roomName, clientId, request.password)
+        val room = ServerRoom(
+            id = roomId,
+            creatorId = clientId,
+            password = request.password
+        )
         rooms[roomId] = room
 
         val user = UserSession(clientId, "User$clientId", connection)
         users[clientId] = user
         room.addPlayer(user)
 
-        connection.sendMessage(CreateRoomResponse(roomId, request.roomName, true))
+        connection.sendMessage(
+            CreateRoomResponse(
+                roomId = roomId,
+                password = request.password,
+                isSuccessful = true
+            )
+        )
         broadcastRoomUpdate(roomId)
     }
 
+    /*
+        метод, описывающий, что реквест отправил овнер по id комнаты,
+        т.к. другой юзер будет джойниться по паролю
+    */
+    private fun isOwnerJoinRoomRequest(request: JoinRoomRequest) =
+        request.roomId != null && request.password == null
+
     private fun handleJoinRoom(connection: Connection, clientId: Long, request: JoinRoomRequest) {
-        val room = rooms[request.roomId]
+        val isOwner = isOwnerJoinRoomRequest(request)
+        val room = if (isOwner)
+            rooms[request.roomId]
+        else
+            rooms.values.firstOrNull { room -> room.id == request.roomId }
+
         if (room == null) {
             connection.sendMessage(ErrorMessage("Room not found"))
             return
@@ -173,14 +195,14 @@ class Server : AutoCloseable {
 
         connection.sendMessage(
             JoinRoomResponse(
-                roomId = request.roomId,
+                roomId = room.id,
                 isSuccessful = true
             )
         )
-        broadcastRoomUpdate(request.roomId)
+        broadcastRoomUpdate(room.id)
     }
 
-        private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
+    private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
             return
@@ -302,19 +324,6 @@ class Server : AutoCloseable {
         }
     }
 
-
-    private fun handleChat(connection: Connection, clientId: Long, message: ChatMessage) {
-        rooms.values.forEach { room ->
-            if (room.players.any { it.id == clientId }) {
-                room.players.forEach { player ->
-                    if (player.id != clientId) {
-                        player.connection.sendMessage(message)
-                    }
-                }
-            }
-        }
-    }
-
     private fun handleLeaveRoom(connection: Connection, clientId: Long, request: LeaveRoomRequest) {
         val room = rooms[request.roomId]
         if (room != null) {
@@ -342,7 +351,16 @@ class Server : AutoCloseable {
     private fun broadcastRoomUpdate(roomId: Long) {
         rooms[roomId]?.let { room ->
             val update = LobbyUpdate(
-                players = room.players.map { PlayerInfo(it.id, it.name, it.id == room.creatorId,false, 0, false) },
+                players = room.players.map { PlayerInfo(
+                    userId = it.id,
+                    username = it.name,
+                    hasUnoDeclared = false,
+                    isOwner = it.id == room.creatorId,
+                    isReady = false,
+                    cardCount = 0,
+                    // todo реализовать аватар. надо его откуда то получить. очко порвать но получить
+                    avatar = ""
+                ) },
                 roomStatus = if (room.gameStarted) RoomStatus.IN_PROGRESS else RoomStatus.WAITING
             )
             room.players.forEach { player ->
@@ -359,7 +377,6 @@ class Server : AutoCloseable {
 
 data class ServerRoom(
     val id: Long,
-    val name: String,
     val creatorId: Long,
     val password: String?,
     val players: MutableList<UserSession> = mutableListOf(),

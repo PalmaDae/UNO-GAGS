@@ -11,7 +11,10 @@ import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 
-class CreateView(private val stage: Stage, private val gameController: GameController) {
+class CreateView(
+    stage: Stage,
+    gameController: GameController
+) {
     private val controller = CreateController(stage, gameController)
     lateinit var scene: Scene
 
@@ -29,9 +32,10 @@ class CreateView(private val stage: Stage, private val gameController: GameContr
         val createLobbyButton = Button("Create Lobby").apply {
             setOnAction {
                 controller.createLobby(
-                    maxPlayersSpinner.value,
-                    rule3.isSelected,
-                    listOf(rule1.isSelected, rule2.isSelected, rule3.isSelected)
+                    maxPlayers = maxPlayersSpinner.value,
+                    allowStuck = rule1.isSelected,
+                    allowStuckCards = rule3.isSelected,
+                    infinityDrawing = rule1.isSelected,
                 )
             }
         }

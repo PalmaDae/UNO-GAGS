@@ -13,17 +13,14 @@ class CreateController(private val stage: Stage, private val gameController: Gam
     fun createLobby(
         maxPlayers: Int,
         allowStuck: Boolean,
-        rules: List<Boolean>
+        allowStuckCards: Boolean,
+        infinityDrawing: Boolean
     ) {
-        val roomName = "Room-" + UUID.randomUUID().toString().substring(0, 4)
-        val password: String? = null
-
         gameController.createRoom(
-            roomName,
-            password,
-            maxPlayers,
-            allowStuck,
-            rules
+            allowStuck = allowStuck,
+            allowStuckCards = allowStuckCards,
+            infinityDrawing = infinityDrawing,
+            maxPlayers = maxPlayers,
         )
     }
 }
