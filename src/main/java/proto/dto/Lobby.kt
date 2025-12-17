@@ -34,14 +34,6 @@ data class StartGameRequest(
     val roomId: Long
 ) : Payload
 
-data class DrawCardRequest(
-    val roomId: Long
-) : Payload
-
-data class SayUnoRequest(
-    val roomId: Long
-) : Payload
-
 data class RoomInfo(
     val roomId: Long,
     val roomName: String,

@@ -33,20 +33,32 @@ enum class GameDirection {
     CLOCKWISE, COUNTER_CLOCKWISE
 }
 
+sealed interface GameRequest {
+    val roomId: Long
+}
+
+data class SayUnoRequest(
+    override val roomId: Long
+) : Payload, GameRequest
+
+data class DrawCardRequest(
+    override val roomId: Long
+) : Payload, GameRequest
+
+data class PlayCardRequest(
+    override val roomId: Long,
+    val cardIndex: Int,           // Индекс карты в руке
+    val chosenColor: CardColor? = null // Для WILD карт
+) : Payload, GameRequest
+
 data class ChooseColorRequest(
-    val roomId: Long,
+    override val roomId: Long,
     val chosenColor: CardColor
-) : Payload
+) : Payload, GameRequest
 
 enum class GamePhase {
     WAITING_TURN, CHOOSING_COLOR, DRAWING_CARD, FINISHED
 }
-
-data class PlayCardRequest(
-    val roomId: Long,
-    val cardIndex: Int,           // Индекс карты в руке
-    val chosenColor: CardColor? = null // Для WILD карт
-) : Payload
 
 // Карта (базовая модель)
 data class Card(

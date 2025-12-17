@@ -10,10 +10,6 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Logger
 
 class Server : AutoCloseable {
-    companion object {
-        private const val PORT = 9090
-        private val logger = Logger.getLogger(Server::class.java.name)
-    }
 
     private val serverSocket = ServerSocket(PORT)
     private val clientIndex = AtomicInteger(0)
@@ -202,27 +198,37 @@ class Server : AutoCloseable {
         broadcastRoomUpdate(room.id)
     }
 
-    private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
+    /*
+        общая часть обработки в методах handleChooseColor и handlePlayCard, handleDrawCard и handleSayUno
+     */
+    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<ServerRoom, GameSession>? {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
-            return
+            return null
         }
 
         val session = room.gameSession ?: run {
             connection.sendMessage(ErrorMessage("Game not started"))
-            return
+            return null
         }
 
-        if (clientId != session.currentPlayerId || session.gamePhase != GamePhase.CHOOSING_COLOR) {
-            connection.sendMessage(ErrorMessage("Not the time or not your turn to choose color."))
-            return
+        if (inTurn && clientId != session.currentPlayerId) {
+            connection.sendMessage(ErrorMessage("Not your turn"))
+            return null
         }
+
+        return room to session
+    }
+
+    private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
+        val roomAndSession = commonHandle(connection, clientId, request, true)
+        if (roomAndSession == null) return
 
         try {
-            session.setChosenColor(request.chosenColor)
+            roomAndSession.component2().setChosenColor(request.chosenColor)
             connection.sendMessage(OkMessage("Color chosen successfully"))
 
-            broadcastGameState(room)
+            broadcastGameState(roomAndSession.component1())
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid color choice"))
@@ -233,27 +239,15 @@ class Server : AutoCloseable {
     }
 
     private fun handlePlayCard(connection: Connection, clientId: Long, request: PlayCardRequest) {
-        val room = rooms[request.roomId] ?: run {
-            connection.sendMessage(ErrorMessage("Room not found"))
-            return
-        }
-
-        val session = room.gameSession ?: run {
-            connection.sendMessage(ErrorMessage("Game not started"))
-            return
-        }
-
-        if (clientId != session.currentPlayerId) {
-            connection.sendMessage(ErrorMessage("Not your turn"))
-            return
-        }
+        val roomAndSession = commonHandle(connection, clientId, request, true)
+        if (roomAndSession == null) return
 
         try {
-            session.playCard(clientId, request.cardIndex, request.chosenColor)
+            roomAndSession.component2().playCard(clientId, request.cardIndex, request.chosenColor)
             connection.sendMessage(OkMessage("Card played successfully"))
 
-            sendHandUpdate(room, clientId)
-            broadcastGameState(room)
+            sendHandUpdate(roomAndSession.component1(), clientId)
+            broadcastGameState(roomAndSession.component1())
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
@@ -263,30 +257,17 @@ class Server : AutoCloseable {
         }
     }
 
-
     private fun handleDrawCard(connection: Connection, clientId: Long, request: DrawCardRequest) {
-        val room = rooms[request.roomId] ?: run {
-            connection.sendMessage(ErrorMessage("Room not found"))
-            return
-        }
-
-        val session = room.gameSession ?: run {
-            connection.sendMessage(ErrorMessage("Game not started"))
-            return
-        }
-
-        if (clientId != session.currentPlayerId) {
-            connection.sendMessage(ErrorMessage("Not your turn"))
-            return
-        }
+        val roomAndSession = commonHandle(connection, clientId, request, true)
+        if (roomAndSession == null) return
 
         try {
-            session.drawCard(clientId)
+            roomAndSession.component2().drawCard(clientId)
             connection.sendMessage(OkMessage("Card drawn successfully"))
 
-            sendHandUpdate(room, clientId)
+            sendHandUpdate(roomAndSession.component1(), clientId)
 
-            broadcastGameState(room)
+            broadcastGameState(roomAndSession.component1())
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
@@ -297,23 +278,16 @@ class Server : AutoCloseable {
     }
 
     private fun handleSayUno(connection: Connection, clientId: Long, request: SayUnoRequest) {
-        val room = rooms[request.roomId] ?: run {
-            connection.sendMessage(ErrorMessage("Room not found"))
-            return
-        }
+        val roomAndSession = commonHandle(connection, clientId, request, false)
+        if (roomAndSession == null) return
 
-        val session = room.gameSession ?: run {
-            connection.sendMessage(ErrorMessage("Game not started"))
-            return
-        }
-
-        if (session.players[clientId] == null) {
+        if (roomAndSession.component2().players[clientId] == null) {
             connection.sendMessage(ErrorMessage("Player not in game"))
             return
         }
 
         try {
-            session.sayUno(clientId)
+            roomAndSession.component2().sayUno(clientId)
             connection.sendMessage(OkMessage("UNO declared successfully"))
 
         } catch (e: IllegalStateException) {
@@ -372,6 +346,11 @@ class Server : AutoCloseable {
     override fun close() {
         running = false
         serverSocket.close()
+    }
+
+    companion object {
+        private const val PORT = 9090
+        private val logger = Logger.getLogger(Server::class.java.name)
     }
 }
 
