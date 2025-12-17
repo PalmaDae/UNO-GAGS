@@ -3,18 +3,19 @@ package proto.dto
 import proto.common.Payload
 
 data class CreateRoomRequest(
-    val roomName: String,
-    val password: String? = null,
     val maxPlayers: Int = 4,
-    val allowStuck: Boolean = false
+    val allowStuck: Boolean = false, // stack +2 or +4
+    val allowStuckCards: Boolean = false, // stack numeric cards
+    val infinityDrawing: Boolean = false // drawing while not finded
 ) : Payload
 
 data class CreateRoomResponse(
     val roomId: Long,
-    val roomName: String,
+    val password: String? = null,
     val isSuccessful: Boolean
 ) : Payload
 
+// todo изменить с roomId на ключ
 data class JoinRoomRequest(
     val roomId: Long,
     val username: String,
@@ -42,9 +43,9 @@ data class SayUnoRequest(
     val roomId: Long
 ) : Payload
 
-data class GetRoomsRequest(
-    val dummy: String = ""
-) : Payload
+//data class GetRoomsRequest(
+//    val dummy: String = ""
+//) : Payload
 
 data class RoomInfo(
     val roomId: Long,
