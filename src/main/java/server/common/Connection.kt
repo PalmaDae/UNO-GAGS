@@ -1,5 +1,7 @@
 package server.common
 
+import proto.common.Method
+import proto.common.NetworkMessage
 import proto.dto.Payload
 import java.io.*
 import java.net.Socket
@@ -10,20 +12,25 @@ class Connection(val socket: Socket) {
 
     fun readMessage(): Payload? {
         return try {
-            input.readObject() as? Payload
-        } catch (e: IOException) {
-            null
-        } catch (e: ClassNotFoundException) {
+            val message = input.readObject() as? NetworkMessage
+            message?.payload
+        } catch (e: Exception) {
+            println("[Server] Read Error: ${e.message}")
             null
         }
     }
 
     fun sendMessage(msg: Payload) {
         try {
-            output.writeObject(msg)
+            val wrapped = NetworkMessage(
+                id = 0,
+                method = Method.OK,
+                payload = msg
+            )
+            output.writeObject(wrapped)
             output.flush()
         } catch (e: IOException) {
-            // Connection closed
+            println("[Server] Write Error: ${e.message}")
         }
     }
 

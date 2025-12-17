@@ -32,7 +32,7 @@ class NetworkClient(
     private var running = false
 
     @Volatile
-    private var isLaunched: Boolean = false
+    private var isLaunched: Boolean = true
 
     private val id = AtomicLong(0) // id сообщения
 
@@ -41,8 +41,6 @@ class NetworkClient(
     }
 
     fun connect(): Boolean {
-        outgoingMessages.offer(NetworkMessage(0, method = Method.OK, payload = OkMessage()))
-
         return try {
             println("[NetworkClient] Connecting to $host:$port...")
             socket = Socket(host, port)
