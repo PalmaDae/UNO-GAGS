@@ -16,6 +16,7 @@ class GameController(private val stage: Stage) {
     private val gameStateModel = GameStateModel()
     private val players = mutableListOf<Player>()
     private var onStateChanged: Runnable? = null
+    private var currentRoomId: Long? = null
 
     init {
         networkClient.setMessageListener(::handleMessage)
@@ -171,7 +172,10 @@ class GameController(private val stage: Stage) {
         println("[GameController] Handling payload: ${message::class.simpleName}")
 
         when (message.payload) {
-            is CreateRoomResponse -> handleRoomCreated(message.payload)
+            is CreateRoomResponse -> {
+                handleRoomCreated(message.payload)
+                handleCreateRoomResponse(message.payload)
+            }
             is JoinRoomResponse -> handleJoinRoom(message.payload)
             is LobbyUpdate -> handleLobbyUpdate(message.payload)
             is GameState -> handleGameState(message.payload)
@@ -188,6 +192,19 @@ class GameController(private val stage: Stage) {
         println("[GameController] Room created: ${response.roomId}")
         notifyStateChanged()
     }
+
+    fun handleCreateRoomResponse(response: CreateRoomResponse) {
+        if (response.isSuccessful) {
+            this.currentRoomId = response.roomId
+            Platform.runLater {
+                val lobbyView = LobbyView(stage, this)
+                stage.scene = lobbyView.scene
+            }
+        } else {
+            println("No room")
+        }
+    }
+
 
     private fun handleJoinRoom(response: JoinRoomResponse) {
         if (response.isSuccessful) {
