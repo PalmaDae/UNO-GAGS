@@ -6,7 +6,7 @@ import proto.dto.CardColor
 object ResourceLoader {
     private const val RESOURCE_BASE = "/images/cards/"
 
-    fun getCardImagePath(color: String, value: String): String {
+    private fun getCardImagePath(color: String, value: String): String {
         if (value == "BACK") {
             return "${RESOURCE_BASE}back.png"
         }
