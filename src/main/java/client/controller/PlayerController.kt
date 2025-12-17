@@ -27,6 +27,11 @@ class PlayerController(
             return
         }
 
+        if (!gameController.connect()) {
+            System.err.println("Не удалось подключиться к серверу!")
+            return
+        }
+
         if (isJoin) {
             if (initialRoomId == null) {
                 System.err.println("Невозможно присоединиться: ID комнаты отсутствует.")
