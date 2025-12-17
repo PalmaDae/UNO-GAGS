@@ -1,6 +1,8 @@
 package proto.dto
 
-import proto.dto.Payload
+data class StartGameRequest(
+    val roomId: Long
+) : Payload
 
 data class GameState(
     val roomId: Long,

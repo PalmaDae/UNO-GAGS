@@ -30,10 +30,6 @@ data class LeaveRoomRequest(
     val roomId: Long
 ) : Payload
 
-data class StartGameRequest(
-    val roomId: Long
-) : Payload
-
 data class RoomInfo(
     val roomId: Long,
     val roomName: String,

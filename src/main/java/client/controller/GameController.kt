@@ -5,7 +5,9 @@ import client.model.*
 import client.view.*
 import javafx.application.Platform
 import javafx.stage.Stage
+import proto.common.Method
 import proto.common.NetworkMessage
+import proto.common.Version
 import proto.dto.*
 import java.util.logging.Logger
 
@@ -37,7 +39,7 @@ class GameController(private val stage: Stage) {
 
     fun chooseColor(roomId: Long, color: CardColor) {
         val request = ChooseColorRequest(roomId, color)
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.CHOOSE_COLOR)
     }
 
     fun setOnStateChanged(callback: Runnable?) {
@@ -123,7 +125,7 @@ class GameController(private val stage: Stage) {
             maxPlayers = maxPlayers,
         )
         println("Sending CreateRoomRequest: $request")
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.CREATE_ROOM)
     }
 
     fun joinRoom(roomId: Long?, username: String, avatar: String, password: String? = null) {
@@ -142,12 +144,12 @@ class GameController(private val stage: Stage) {
             username = username,
             avatar = avatar
         )
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.JOIN_ROOM_REQUEST)
     }
 
     fun startGame(roomId: Long) {
         val request = StartGameRequest(roomId)
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.START_GAME)
     }
 
     fun playCard(roomId: Long, chosenColor: CardColor?) {
@@ -161,17 +163,17 @@ class GameController(private val stage: Stage) {
             playerModel.selectedCardIndex,
             chosenColor
         )
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.PLAY_CARD)
     }
 
     fun drawCard(roomId: Long) {
         val request = DrawCardRequest(roomId)
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.DRAW_CARD)
     }
 
     fun sayUno(roomId: Long) {
         val request = SayUnoRequest(roomId)
-        networkClient.sendPayload(request)
+        networkClient.sendMessage(request, Method.SAY_UNO)
     }
 
     private fun handleMessage(message: NetworkMessage) {
