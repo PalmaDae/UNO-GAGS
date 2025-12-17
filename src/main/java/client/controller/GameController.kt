@@ -2,8 +2,8 @@ package client.controller
 
 import client.common.NetworkClient
 import client.model.GameStateModel
-import client.model.Player
-import client.model.Room
+import client.model.PlayerModel
+import client.model.RoomModel
 import client.view.GameView
 import client.view.LobbyView
 import client.view.MainMenuView
@@ -16,10 +16,10 @@ import java.util.logging.Logger
 
 class GameController(private val stage: Stage) {
     private val networkClient = NetworkClient()
-    private val playerModel = Player()
-    private val roomModel = Room()
+    private val playerModel = PlayerModel()
+    private val roomModel = RoomModel()
     private val gameStateModel = GameStateModel()
-    private val players = mutableListOf<Player>()
+    private val players = mutableListOf<PlayerModel>()
     private var onStateChanged: Runnable? = null
     private var currentRoomId: Long? = null
     var passwordRoom: String? = null
@@ -133,6 +133,7 @@ class GameController(private val stage: Stage) {
 
         passwordRoom = password
         val request = CreateRoomRequest(
+            avatar = "",
             password = password,
             allowStuck = allowStuck,
             allowStuckCards = allowStuckCards,

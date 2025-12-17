@@ -99,7 +99,7 @@ class GameSession(
 
         // Check UNO rules if player has 2 cards after playing
         val willHaveOneCardLeft = hand.size == 2
-        if (willHaveOneCardLeft && !player.hasDeclaredUno()) {
+        if (willHaveOneCardLeft && !player.hasDeclaredUno) {
             // Player forgot to say UNO - penalty of 2 cards
             player.addCard(deckPiles.drawCard())
             player.addCard(deckPiles.drawCard())
@@ -231,7 +231,7 @@ class GameSession(
                 val info = PlayerGameInfo(
                     player.username!!,
                     player.cardCount,
-                    player.hasDeclaredUno()
+                    player.hasDeclaredUno
                 )
                 playerInfos.put(player.playerId, info)
             }

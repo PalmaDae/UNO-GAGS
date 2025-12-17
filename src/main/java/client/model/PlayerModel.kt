@@ -2,7 +2,8 @@ package client.model
 
 import proto.dto.Card
 
-class Player {
+class PlayerModel {
+
     var playerId: Long? = null
     var username: String = ""
     var avatar: String = ""
@@ -27,8 +28,6 @@ class Player {
     }
 
     fun hasSelectedCard() = selectedCardIndex in hand.indices
-
-    fun getSelectedCard() = hand[selectedCardIndex]
 
     fun reset() {
         playerId = null

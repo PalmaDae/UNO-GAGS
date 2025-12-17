@@ -1,9 +1,8 @@
 package client.model
 
 import proto.dto.LobbyUpdate
-import proto.dto.RoomInfo
 
-class Room {
+class RoomModel {
     var currentRoomId: Long? = null
     var lobbyState: LobbyUpdate? = null
 

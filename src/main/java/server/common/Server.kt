@@ -13,8 +13,8 @@ class Server : AutoCloseable {
 
     private val serverSocket = ServerSocket(PORT)
     private val clientIndex = AtomicInteger(0)
-    private val rooms = mutableMapOf<Long, ServerRoom>()
-    private val users = mutableMapOf<Long, UserSession>()
+    private val rooms = mutableMapOf<Long, RoomOnServer>()
+    private val users = mutableMapOf<Long, PlayerOnServer>()
     private var nextRoomId = 1L
     private var running = true
 
@@ -65,7 +65,7 @@ class Server : AutoCloseable {
         }
 
         val initialPlayerStates = room.players.map { userSession ->
-            PlayerState(userSession.id, userSession.name)
+            PlayerState(userSession.id, userSession.username)
         }.toMutableList()
 
         val gameSession = GameSession(request.roomId, initialPlayerStates)
@@ -98,7 +98,7 @@ class Server : AutoCloseable {
         }
     }
 
-    private fun sendHandUpdate(room: ServerRoom, playerId: Long) {
+    private fun sendHandUpdate(room: RoomOnServer, playerId: Long) {
         room.gameSession?.let { session ->
             val playerState = session.players[playerId]
 
@@ -112,7 +112,7 @@ class Server : AutoCloseable {
         }
     }
 
-    private fun broadcastGameState(room: ServerRoom) {
+    private fun broadcastGameState(room: RoomOnServer) {
         room.gameSession?.let { session ->
             val gameState = session.gameState
             room.players.forEach { player ->
@@ -146,14 +146,14 @@ class Server : AutoCloseable {
 
     private fun handleCreateRoom(connection: Connection, clientId: Long, request: CreateRoomRequest) {
         val roomId = nextRoomId++
-        val room = ServerRoom(
+        val room = RoomOnServer(
             id = roomId,
             creatorId = clientId,
             password = request.password
         )
         rooms[roomId] = room
 
-        val user = UserSession(clientId, "User$clientId", connection)
+        val user = PlayerOnServer(clientId, "User$clientId", connection)
         users[clientId] = user
         room.addPlayer(user)
 
@@ -186,7 +186,7 @@ class Server : AutoCloseable {
             return
         }
 
-        val user = users.getOrPut(clientId) { UserSession(clientId, "User$clientId", connection) }
+        val user = users.getOrPut(clientId) { PlayerOnServer(clientId, "User$clientId", connection) }
         room.addPlayer(user)
 
         connection.sendMessage(
@@ -201,7 +201,7 @@ class Server : AutoCloseable {
     /*
         общая часть обработки в методах handleChooseColor и handlePlayCard, handleDrawCard и handleSayUno
      */
-    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<ServerRoom, GameSession>? {
+    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<RoomOnServer, GameSession>? {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
             return null
@@ -327,7 +327,7 @@ class Server : AutoCloseable {
             val update = LobbyUpdate(
                 players = room.players.map { PlayerInfo(
                     userId = it.id,
-                    username = it.name,
+                    username = it.username,
                     hasUnoDeclared = false,
                     isOwner = it.id == room.creatorId,
                     isReady = false,
@@ -354,25 +354,25 @@ class Server : AutoCloseable {
     }
 }
 
-data class ServerRoom(
+data class RoomOnServer(
     val id: Long,
     val creatorId: Long,
     val password: String?,
-    val players: MutableList<UserSession> = mutableListOf(),
+    val players: MutableList<PlayerOnServer> = mutableListOf(),
     var gameStarted: Boolean = false,
     var gameSession: GameSession? = null
 ) {
-    fun addPlayer(user: UserSession) {
+    fun addPlayer(user: PlayerOnServer) {
         if (!players.any { it.id == user.id }) {
             players.add(user)
         }
     }
 
-    fun removePlayer(user: UserSession) = players.removeAll { it.id == user.id }
+    fun removePlayer(user: PlayerOnServer) = players.removeAll { it.id == user.id }
 }
 
-data class UserSession(
+data class PlayerOnServer(
     val id: Long,
-    val name: String,
+    val username: String,
     val connection: Connection
 )

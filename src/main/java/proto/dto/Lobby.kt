@@ -1,11 +1,12 @@
 package proto.dto
 
 data class CreateRoomRequest(
+    val avatar: String, // информация для лобака, аватар овнера
     val password: String? = null,
     val maxPlayers: Int = 4,
     val allowStuck: Boolean = false, // stack +2 or +4
     val allowStuckCards: Boolean = false, // stack numeric cards
-    val infinityDrawing: Boolean = false // drawing while not finded
+    val infinityDrawing: Boolean = false // drawing while not founded
 ) : Payload
 
 data class CreateRoomResponse(
