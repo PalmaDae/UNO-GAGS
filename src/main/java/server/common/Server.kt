@@ -153,7 +153,7 @@ class Server : AutoCloseable {
         )
         rooms[roomId] = room
 
-        val user = PlayerOnServer(clientId, "User$clientId", connection)
+        val user = PlayerOnServer(clientId, request.username, request.avatar, connection)
         users[clientId] = user
         room.addPlayer(user)
 
@@ -186,7 +186,10 @@ class Server : AutoCloseable {
             return
         }
 
-        val user = users.getOrPut(clientId) { PlayerOnServer(clientId, "User$clientId", connection) }
+        val user = users.getOrPut(clientId) {
+            PlayerOnServer(clientId, request.username, request.avatar, connection)
+        }
+
         room.addPlayer(user)
 
         connection.sendMessage(
@@ -325,21 +328,20 @@ class Server : AutoCloseable {
     private fun broadcastRoomUpdate(roomId: Long) {
         rooms[roomId]?.let { room ->
             val update = LobbyUpdate(
-                players = room.players.map { PlayerInfo(
-                    userId = it.id,
-                    username = it.username,
-                    hasUnoDeclared = false,
-                    isOwner = it.id == room.creatorId,
-                    isReady = false,
-                    cardCount = 0,
-                    // todo реализовать аватар. надо его откуда то получить. очко порвать но получить
-                    avatar = ""
-                ) },
+                players = room.players.map { playerFromServer ->
+                    PlayerInfo(
+                        userId = playerFromServer.id,
+                        username = playerFromServer.username,
+                        avatar = playerFromServer.avatar,
+                        isOwner = playerFromServer.id == room.creatorId,
+                        hasUnoDeclared = false,
+                        isReady = false,
+                        cardCount = 0
+                    )
+                },
                 roomStatus = if (room.gameStarted) RoomStatus.IN_PROGRESS else RoomStatus.WAITING
             )
-            room.players.forEach { player ->
-                player.connection.sendMessage(update)
-            }
+            room.players.forEach { it.connection.sendMessage(update) }
         }
     }
 
@@ -374,5 +376,6 @@ data class RoomOnServer(
 data class PlayerOnServer(
     val id: Long,
     val username: String,
+    val avatar: String,
     val connection: Connection
 )

@@ -1,6 +1,7 @@
 package proto.dto
 
 data class CreateRoomRequest(
+    val username: String,
     val avatar: String, // информация для лобака, аватар овнера
     val password: String? = null,
     val maxPlayers: Int = 4,

@@ -133,12 +133,13 @@ class GameController(private val stage: Stage) {
 
         passwordRoom = password
         val request = CreateRoomRequest(
-            avatar = "",
+            avatar = currentUserAvatar,
             password = password,
             allowStuck = allowStuck,
             allowStuckCards = allowStuckCards,
             infinityDrawing = infinityDrawing,
             maxPlayers = maxPlayers,
+            username = currentUserName
         )
         println("Sending CreateRoomRequest: $request")
         networkClient.sendMessage(request, Method.CREATE_ROOM)
@@ -220,6 +221,10 @@ class GameController(private val stage: Stage) {
     fun handleCreateRoomResponse(response: CreateRoomResponse) {
         if (response.isSuccessful) {
             this.currentRoomId = response.roomId
+
+            playerModel.username = this.currentUserName
+            playerModel.avatar = this.currentUserAvatar
+
             Platform.runLater {
                 val lobbyView = LobbyView(stage, this)
                 stage.scene = lobbyView.scene

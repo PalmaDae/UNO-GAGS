@@ -1,5 +1,6 @@
 package client.view
 
+import client.common.ResourceLoader
 import client.config.StageConfig
 import client.controller.GameController
 import client.controller.LobbyController
@@ -102,12 +103,20 @@ class LobbyView(
     }
 
     private fun createPlayerBox(playerInfo: PlayerInfo): HBox {
+        val avatarView = javafx.scene.image.ImageView().apply {
+            fitWidth = 40.0
+            fitHeight = 40.0
+            isPreserveRatio = true
+
+            image = ResourceLoader.loadAvatar(playerInfo.avatar)
+        }
+
         val nameText = "${playerInfo.username} ${if (playerInfo.isOwner) " (Host)" else ""}"
         val nameLabel = Label(nameText).apply {
             styleClass.add("player-label")
         }
 
-        val playerBox = HBox(10.0, nameLabel).apply {
+        val playerBox = HBox(10.0, nameLabel, avatarView).apply {
             alignment = Pos.CENTER
         }
 
