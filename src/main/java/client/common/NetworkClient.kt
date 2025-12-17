@@ -1,7 +1,7 @@
 package client.common
 
 import proto.common.NetworkMessage
-import proto.common.Payload
+import proto.dto.Payload
 import java.io.*
 import java.net.Socket
 import java.util.concurrent.BlockingQueue
@@ -13,22 +13,22 @@ class NetworkClient(
     private val host: String = "localhost",
     private val port: Int = 9090
 ) {
-    private var socket: Socket? = null
-    private var input: ObjectInputStream? = null
-    private var output: ObjectOutputStream? = null
+    private lateinit var socket: Socket
+    private lateinit var  input: ObjectInputStream
+    private lateinit var  output: ObjectOutputStream
 
     // todo изменить на NetworkMessage
     private val outgoingPayloads: BlockingQueue<Payload> = LinkedBlockingQueue()
     private val outgoingMessages: BlockingQueue<NetworkMessage> = LinkedBlockingQueue()
 
-    private var messageListener: Consumer<Payload>? = null
+    private lateinit var messageListener: Consumer<NetworkMessage>
     private var senderThread: Thread? = null
     private var receiverThread: Thread? = null
 
     @Volatile
     private var running = false
 
-    fun setMessageListener(listener: (Payload) -> Unit) {
+    fun setMessageListener(listener: (NetworkMessage) -> Unit) {
         messageListener = Consumer(listener)
     }
 
@@ -36,8 +36,8 @@ class NetworkClient(
         return try {
             println("[NetworkClient] Connecting to $host:$port...")
             socket = Socket(host, port)
-            output = ObjectOutputStream(socket!!.getOutputStream())
-            input = ObjectInputStream(socket!!.getInputStream())
+            output = ObjectOutputStream(socket.getOutputStream())
+            input = ObjectInputStream(socket.getInputStream())
 
             println("[NetworkClient] Connected!")
 
@@ -58,17 +58,13 @@ class NetworkClient(
         running = false
 
         try {
-            socket?.takeIf { !it.isClosed }?.close()
+            socket.takeIf { !it.isClosed }?.close()
         } catch (e: IOException) {
             System.err.println("[NetworkClient] Error closing socket: ${e.message}")
         }
 
-        senderThread?.let {
-            it.join(1000)
-        }
-        receiverThread?.let {
-            it.join(1000)
-        }
+        senderThread?.join(1000)
+        receiverThread?.join(1000)
 
         println("[NetworkClient] Disconnected")
     }
@@ -88,8 +84,8 @@ class NetworkClient(
 
                     if (payload != null) {
                         println("[Sender] Sending: ${payload::class.simpleName}")
-                        output?.writeObject(payload)
-                        output?.flush()
+                        output.writeObject(payload)
+                        output.flush()
                     }
                 } catch (_: InterruptedException) {
                     break
@@ -111,27 +107,24 @@ class NetworkClient(
 
             while (running) {
                 try {
-                    val obj = input?.readObject()
+                    val obj = input.readObject()
 
                     if (obj == null) {
                         println("[Receiver] Server closed connection")
                         break
                     }
 
-                    if (obj is Payload) {
+                    if (obj is NetworkMessage) {
                         println("[Receiver] Received: ${obj::class.simpleName}")
-                        messageListener?.accept(obj)
-                    } else {
-                        println("[Receiver] Received non-Payload object: ${obj::class.simpleName}")
-                    }
-
-                } catch (e: EOFException) {
+                        messageListener.accept(obj)
+                    } else
+                        println("[Receiver] Received non-NetworkMessage object: ${obj::class.simpleName}")
+                } catch (_: EOFException) {
                     println("[Receiver] Server closed connection")
                     break
                 } catch (e: IOException) {
-                    if (running) {
+                    if (running)
                         System.err.println("[Receiver] Error reading from server: ${e.message}")
-                    }
                     break
                 } catch (e: ClassNotFoundException) {
                     System.err.println("[Receiver] Unknown class: ${e.message}")
@@ -148,5 +141,5 @@ class NetworkClient(
         }
     }
 
-    fun isConnected(): Boolean = socket?.let { !it.isClosed && running } ?: false
+    fun isConnected(): Boolean = socket.let { !it.isClosed && running }
 }

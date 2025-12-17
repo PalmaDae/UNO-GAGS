@@ -19,7 +19,7 @@ class LobbyView(
     private val gameController: GameController
 ) {
     var scene: Scene
-    private val controller = LobbyController(stage, gameController)
+    private val controller = LobbyController(gameController)
 
     private val passwordField = TextField().apply {
         isEditable = false
@@ -44,11 +44,11 @@ class LobbyView(
     }
 
     init {
-        gameController.setOnStateChanged(Runnable {
+        gameController.setOnStateChanged {
             Platform.runLater {
                 updateLobbyView()
             }
-        })
+        }
 
         val copyButton = Button("Copy").apply {
             setOnAction { controller.copyPassword(passwordField.text) }
@@ -72,7 +72,7 @@ class LobbyView(
         }
 
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
-        scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
+        scene.stylesheets.add(javaClass.getResource("/css/style.css")?.toExternalForm())
 
         updateLobbyView()
     }
@@ -92,7 +92,7 @@ class LobbyView(
             playersBox.children.add(Label("Waiting for players to join..."))
         } else {
             currentPlayers.forEach { playerInfo: PlayerInfo ->
-                val playerBox = createPlayerBox(playerInfo, isHost, myPlayerId)
+                val playerBox = createPlayerBox(playerInfo)
                 playersBox.children.add(playerBox)
             }
         }
@@ -101,7 +101,7 @@ class LobbyView(
         startGameButton.isDisable = currentPlayers.size < 2
     }
 
-    private fun createPlayerBox(playerInfo: PlayerInfo, isHost: Boolean, myPlayerId: Long?): HBox {
+    private fun createPlayerBox(playerInfo: PlayerInfo): HBox {
         val nameText = "${playerInfo.username} ${if (playerInfo.isOwner) " (Host)" else ""}"
         val nameLabel = Label(nameText).apply {
             styleClass.add("player-label")
@@ -109,15 +109,6 @@ class LobbyView(
 
         val playerBox = HBox(10.0, nameLabel).apply {
             alignment = Pos.CENTER
-        }
-
-        if (isHost && playerInfo.userId != myPlayerId) {
-            val kickButton = Button("Kick").apply {
-                setOnAction {
-                    controller.kickPlayer(playerInfo.userId)
-                }
-            }
-            playerBox.children.add(kickButton)
         }
 
         return playerBox

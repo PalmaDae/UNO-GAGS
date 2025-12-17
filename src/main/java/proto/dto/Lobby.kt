@@ -1,7 +1,5 @@
 package proto.dto
 
-import proto.common.Payload
-
 data class CreateRoomRequest(
     val password: String? = null,
     val maxPlayers: Int = 4,
@@ -33,14 +31,6 @@ data class LeaveRoomRequest(
 ) : Payload
 
 data class StartGameRequest(
-    val roomId: Long
-) : Payload
-
-data class DrawCardRequest(
-    val roomId: Long
-) : Payload
-
-data class SayUnoRequest(
     val roomId: Long
 ) : Payload
 

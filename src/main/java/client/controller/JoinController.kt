@@ -24,7 +24,7 @@ class JoinController(private val stage: Stage, private val gameController: GameC
             )
             stage.scene = playerView.scene
 
-        } catch (e: NumberFormatException) {
+        } catch (_: NumberFormatException) {
             System.err.println("Invalid Room ID format. Must be a number.")
         }
     }
@@ -36,10 +36,8 @@ class JoinController(private val stage: Stage, private val gameController: GameC
 
     fun pasteKey(): String {
         val clipboard = Clipboard.getSystemClipboard()
-        return if (clipboard.hasString()) {
+        return if (clipboard.hasString())
             clipboard.string
-        } else {
-            ""
-        }
+        else ""
     }
 }

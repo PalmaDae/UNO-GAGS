@@ -1,15 +1,11 @@
 package client.controller
 
 import client.common.NetworkClient
-import client.model.GameStateModel
-import client.model.Player
-import client.model.Room
-import client.view.GameView
-import client.view.LobbyView
-import client.view.MainMenuView
+import client.model.*
+import client.view.*
 import javafx.application.Platform
 import javafx.stage.Stage
-import proto.common.Payload
+import proto.common.NetworkMessage
 import proto.dto.*
 import java.util.logging.Logger
 
@@ -18,38 +14,34 @@ class GameController(private val stage: Stage) {
     private val playerModel = Player()
     private val roomModel = Room()
     private val gameStateModel = GameStateModel()
+    private val players = mutableListOf<Player>()
+    private var onStateChanged: Runnable? = null
     private var currentRoomId: Long? = null
 
-    companion object {
-        private val logger = Logger.getLogger(GameController::class.java.name)
+    init {
+        networkClient.setMessageListener(::handleMessage)
     }
 
-    val players = mutableListOf<Player>()
+    // todo реализовать присоединение к серверу
+    fun connect() = networkClient.connect()
+
+    fun disconnect() {
+        networkClient.disconnect()
+        resetAllModels()
+    }
 
     fun closedGame() {
         val menuView = MainMenuView(stage, gameController = GameController(stage))
         stage.scene = menuView.scene
     }
 
-
     fun chooseColor(roomId: Long, color: CardColor) {
         val request = ChooseColorRequest(roomId, color)
         networkClient.sendPayload(request)
     }
 
-    private var onStateChanged: Runnable? = null
-
-    init {
-        networkClient.setMessageListener(::handleMessage)
-    }
-
     fun setOnStateChanged(callback: Runnable?) {
         onStateChanged = callback
-    }
-
-    fun createLobby() {
-        val lobby = LobbyView(stage, gameController = this)
-        stage.scene = lobby.scene
     }
 
     fun handleCardSelection(cardIndex: Int, card: Card) {
@@ -112,13 +104,6 @@ class GameController(private val stage: Stage) {
         return opponentsInOrder
     }
 
-    fun connect(): Boolean = networkClient.connect()
-
-    fun disconnect() {
-        networkClient.disconnect()
-        resetAllModels()
-    }
-
     private fun resetAllModels() {
         playerModel.reset()
         roomModel.reset()
@@ -131,11 +116,6 @@ class GameController(private val stage: Stage) {
         allowStuckCards: Boolean,
         infinityDrawing: Boolean
     ) {
-        if (!networkClient.isConnected()) {
-            println("ОШИБКА: Нет подключения к серверу! Пытаюсь подключиться...")
-            val connected = connect()
-            if (!connected) return
-        }
         val request = CreateRoomRequest(
             allowStuck = allowStuck,
             allowStuckCards = allowStuckCards,
@@ -188,24 +168,29 @@ class GameController(private val stage: Stage) {
         networkClient.sendPayload(request)
     }
 
-    private fun handleMessage(payload: Payload) {
-        println("[GameController] Handling payload: ${payload::class.simpleName}")
+    private fun handleMessage(message: NetworkMessage) {
+        println("[GameController] Handling payload: ${message::class.simpleName}")
 
-        when (payload) {
+        when (message.payload) {
             is CreateRoomResponse -> {
-                handleRoomCreated(payload)
-                handleCreateRoomResponse(payload)
+                handleRoomCreated(message.payload)
+                handleCreateRoomResponse(message.payload)
             }
-            is JoinRoomResponse -> handleJoinRoom(payload)
-            is LobbyUpdate -> handleLobbyUpdate(payload)
-            is GameState -> handleGameState(payload)
-            is PlayerHandUpdate -> handlePlayerHandUpdate(payload)
-            is RoomsListPayload -> handleRoomsList(payload)
-            is ErrorMessage -> handleError(payload)
-            is OkMessage -> println("[GameController] OK: ${payload.message}")
+            is JoinRoomResponse -> handleJoinRoom(message.payload)
+            is LobbyUpdate -> handleLobbyUpdate(message.payload)
+            is GameState -> handleGameState(message.payload)
+            is PlayerHandUpdate -> handlePlayerHandUpdate(message.payload)
+            is ErrorMessage -> handleError(message.payload)
+            is OkMessage -> println("[GameController] OK: ${message.payload}")
             is PongMessage -> println("[GameController] Received PONG")
-            else -> println("[GameController] Unhandled payload type: ${payload::class.simpleName}")
+            else -> println("[GameController] Unhandled payload type: ${message.payload::class.simpleName}")
         }
+    }
+
+    private fun handleRoomCreated(response: CreateRoomResponse) {
+        roomModel.joinRoom(response.roomId)
+        println("[GameController] Room created: ${response.roomId}")
+        notifyStateChanged()
     }
 
     fun handleCreateRoomResponse(response: CreateRoomResponse) {
@@ -220,21 +205,6 @@ class GameController(private val stage: Stage) {
         }
     }
 
-    fun addPlayer(name: String, avatar: String, isOwner: Boolean = false) {
-        playerModel.playerId = System.currentTimeMillis()
-        playerModel.username = name
-        playerModel.avatar = avatar
-        playerModel.role = if (isOwner) "OWNER" else "PLAYER"
-
-        players.add(playerModel)
-        createLobby()
-    }
-
-    private fun handleRoomCreated(response: CreateRoomResponse) {
-        roomModel.joinRoom(response.roomId)
-        println("[GameController] Room created: ${response.roomId}")
-        notifyStateChanged()
-    }
 
     private fun handleJoinRoom(response: JoinRoomResponse) {
         if (response.isSuccessful) {
@@ -245,9 +215,8 @@ class GameController(private val stage: Stage) {
                 val lobby = LobbyView(stage, gameController = this)
                 stage.scene = lobby.scene
             }
-        } else {
+        } else
             System.err.println("[GameController] Failed to join room ${response.roomId}")
-        }
 
         notifyStateChanged()
     }
@@ -274,14 +243,6 @@ class GameController(private val stage: Stage) {
         notifyStateChanged()
     }
 
-    private fun handleRoomsList(roomsList: RoomsListPayload) {
-        roomModel.updateAvailableRooms(roomsList.rooms)
-
-        println("[GameController] Received ${roomsList.rooms.size} rooms")
-
-        notifyStateChanged()
-    }
-
     private fun handleError(error: ErrorMessage) {
         System.err.println("[GameController] Error from server: ${error.message}")
     }
@@ -290,7 +251,7 @@ class GameController(private val stage: Stage) {
         onStateChanged?.let { callback ->
             try {
                 Platform.runLater(callback)
-            } catch (e: IllegalStateException) {
+            } catch (_: IllegalStateException) {
                 callback.run()
             }
         }
@@ -310,4 +271,8 @@ class GameController(private val stage: Stage) {
     fun getMyHand(): List<Card> = playerModel.hand.toList()
     fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
     fun setSelectedCardIndex(index: Int) = playerModel.selectCard(index)
+
+    companion object {
+        private val logger = Logger.getLogger(GameController::class.java.name)
+    }
 }

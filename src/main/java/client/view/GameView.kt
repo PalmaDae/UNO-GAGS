@@ -24,23 +24,16 @@ class GameView(
     private val stage: Stage,
     private val gameController: GameController
 ) {
-    lateinit var scene: Scene
-
+    var scene: Scene
     private val centerCardDisplay = ImageView()
     private val playerHandBox = HBox(16.0)
     private val gameStatusLabel = Label("Waiting to start...")
     private val unoButton = Button("Say UNO! (SPACE)")
     private val drawButton = Button("Draw Card")
     private val root = BorderPane()
-
-    private val CARD_WIDTH = 90.0
-    private val CARD_HEIGHT = 135.0
     private val topPlayerBox = HBox(8.0).apply { alignment = Pos.CENTER }
     private val leftPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_LEFT }
     private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
-    private val SMALL_CARD_WIDTH = 70.0
-    private val SMALL_CARD_HEIGHT = 105.0
-
 
     init {
         gameController.setOnStateChanged {
@@ -119,7 +112,7 @@ class GameView(
 
         if (opponents.isEmpty()) return
 
-        val myPlayerId = gameController.getMyPlayerId() ?: return
+        gameController.getMyPlayerId() ?: return
         val currentTurnPlayerId = gameController.getCurrentGameState()?.currentPlayerId
 
         val sortedOpponents = gameController.getOpponentsInOrder()
@@ -337,5 +330,12 @@ class GameView(
                 gameController.setSelectedCardIndex(-1)
             }
         }
+    }
+
+    companion object {
+        private const val CARD_WIDTH = 90.0
+        private const val CARD_HEIGHT = 135.0
+        private const val SMALL_CARD_WIDTH = 70.0
+        private const val SMALL_CARD_HEIGHT = 105.0
     }
 }
