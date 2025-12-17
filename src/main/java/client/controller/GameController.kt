@@ -1,13 +1,16 @@
 package client.controller
 
 import client.common.NetworkClient
-import client.model.*
-import client.view.*
+import client.model.GameStateModel
+import client.model.Player
+import client.model.Room
+import client.view.GameView
+import client.view.LobbyView
+import client.view.MainMenuView
 import javafx.application.Platform
 import javafx.stage.Stage
 import proto.common.Method
 import proto.common.NetworkMessage
-import proto.common.Version
 import proto.dto.*
 import java.util.logging.Logger
 
@@ -19,13 +22,12 @@ class GameController(private val stage: Stage) {
     private val players = mutableListOf<Player>()
     private var onStateChanged: Runnable? = null
     private var currentRoomId: Long? = null
-    public var passwordRoom: String? = null
+    var passwordRoom: String? = null
 
     init {
         networkClient.setMessageListener(::handleMessage)
     }
 
-    // todo реализовать присоединение к серверу
     fun connect() = networkClient.connect()
 
     fun disconnect() {

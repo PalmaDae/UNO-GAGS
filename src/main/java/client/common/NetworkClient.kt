@@ -2,9 +2,11 @@ package client.common
 
 import proto.common.Method
 import proto.common.NetworkMessage
-import proto.dto.OkMessage
 import proto.dto.Payload
-import java.io.*
+import java.io.EOFException
+import java.io.IOException
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
 import java.net.Socket
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
@@ -20,8 +22,6 @@ class NetworkClient(
     private lateinit var input: ObjectInputStream
     private lateinit var output: ObjectOutputStream
 
-    // todo изменить на NetworkMessage
-    private val outgoingPayloads: BlockingQueue<Payload> = LinkedBlockingQueue()
     private val outgoingMessages: BlockingQueue<NetworkMessage> = LinkedBlockingQueue()
 
     private lateinit var messageListener: Consumer<NetworkMessage>
@@ -30,9 +30,6 @@ class NetworkClient(
 
     @Volatile
     private var running = false
-
-    @Volatile
-    private var isLaunched: Boolean = true
 
     private val id = AtomicLong(0) // id сообщения
 
@@ -77,7 +74,6 @@ class NetworkClient(
         println("[NetworkClient] Disconnected")
     }
 
-    // todo изменить с отправки Payload на отправку NetworkMessage
     fun sendMessage(payload: Payload, method: Method): Boolean {
         return outgoingMessages.offer(
             NetworkMessage(
@@ -89,75 +85,72 @@ class NetworkClient(
     }
 
 
-    private fun startSenderThread() =
-        if (isLaunched) {
-            senderThread = Thread({
-                println("[Sender] Thread started")
+    private fun startSenderThread() {
+        senderThread = Thread({
+            println("[Sender] Thread started")
 
-                while (running) {
-                    try {
-                        val message = outgoingMessages.poll(1, TimeUnit.SECONDS)
+            while (running) {
+                try {
+                    val message = outgoingMessages.poll(1, TimeUnit.SECONDS)
 
-                        if (message != null) {
-                            println("[Sender] Sending: ${message::class.simpleName}")
-                            output.writeObject(message)
-                            output.flush()
-                        }
-                    } catch (_: InterruptedException) {
-                        break
-                    } catch (e: Exception) {
-                        System.err.println("[Sender] Error sending message: ${e.message}")
+                    if (message != null) {
+                        println("[Sender] Sending: ${message::class.simpleName}")
+                        output.writeObject(message)
+                        output.flush()
                     }
+                } catch (_: InterruptedException) {
+                    break
+                } catch (e: Exception) {
+                    System.err.println("[Sender] Error sending message: ${e.message}")
                 }
-
-                println("[Sender] Thread stopped")
-            }, "NetworkClient-Sender").apply {
-                isDaemon = true
-                start()
             }
-        } else { }
 
-    private fun startReceiverThread() =
-        if (isLaunched) {
-            receiverThread = Thread({
-                println("[Receiver] Thread started")
+            println("[Sender] Thread stopped")
+        }, "NetworkClient-Sender").apply {
+            isDaemon = true
+            start()
+        }
+    }
 
-                while (running) {
-                    try {
-                        val obj = input.readObject()
+    private fun startReceiverThread() {
+        receiverThread = Thread({
+            println("[Receiver] Thread started")
 
-                        if (obj == null) {
-                            println("[Receiver] Server closed connection")
-                            break
-                        }
+            while (running) {
+                try {
+                    val obj = input.readObject()
 
-                        if (obj is NetworkMessage) {
-                            println("[Receiver] Received: ${obj::class.simpleName}")
-                            messageListener.accept(obj)
-                        } else
-                            println("[Receiver] Received non-NetworkMessage object: ${obj::class.simpleName}")
-                    } catch (_: EOFException) {
+                    if (obj == null) {
                         println("[Receiver] Server closed connection")
                         break
-                    } catch (e: IOException) {
-                        if (running)
-                            System.err.println("[Receiver] Error reading from server: ${e.message}")
-                        break
-                    } catch (e: ClassNotFoundException) {
-                        System.err.println("[Receiver] Unknown class: ${e.message}")
-                    } catch (e: Exception) {
-                        System.err.println("[Receiver] Error parsing message: ${e.message}")
-                        e.printStackTrace()
                     }
+
+                    if (obj is NetworkMessage) {
+                        println("[Receiver] Received: ${obj::class.simpleName}")
+                        messageListener.accept(obj)
+                    } else
+                        println("[Receiver] Received non-NetworkMessage object: ${obj::class.simpleName}")
+                } catch (_: EOFException) {
+                    println("[Receiver] Server closed connection")
+                    break
+                } catch (e: IOException) {
+                    if (running)
+                        System.err.println("[Receiver] Error reading from server: ${e.message}")
+                    break
+                } catch (e: ClassNotFoundException) {
+                    System.err.println("[Receiver] Unknown class: ${e.message}")
+                } catch (e: Exception) {
+                    System.err.println("[Receiver] Error parsing message: ${e.message}")
+                    e.printStackTrace()
                 }
-
-                println("[Receiver] Thread stopped")
-            }, "NetworkClient-Receiver").apply {
-                isDaemon = true
-                start()
             }
-        } else { }
 
+            println("[Receiver] Thread stopped")
+        }, "NetworkClient-Receiver").apply {
+            isDaemon = true
+            start()
+        }
+    }
 
     fun isConnected(): Boolean = socket.let { !it.isClosed && running }
 }
