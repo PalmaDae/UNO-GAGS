@@ -63,18 +63,14 @@ class GameController(private val stage: Stage) {
         val isAlreadySelected = playerModel.selectedCardIndex == cardIndex
         val roomId = getCurrentRoomId() ?: return
 
-        if (isAlreadySelected) {
-            val isWild = card.type.name.contains("WILD")
-
-            if (isWild) {
-            } else {
-                playCard(roomId, null)
-                playerModel.selectCard(-1)
-            }
-
-        } else {
-            playerModel.selectCard(cardIndex)
-        }
+        if (isAlreadySelected)
+            // todo нет обработки того, что выбрана дикая карта
+            // также после получения сообщения об обновлении GameState,
+            // там приходит currentCard, но в интрефейсе она не обновляется
+            // todo также какая-то беда с isAlreadySelected, он возрвращает false, когда должен true, но не всегда
+            playCard(roomId, null)
+        else
+            setSelectedCardIndex(cardIndex)
 
         notifyStateChanged()
     }
@@ -171,7 +167,7 @@ class GameController(private val stage: Stage) {
         networkClient.sendMessage(request, Method.START_GAME)
     }
 
-    fun playCard(roomId: Long, chosenColor: CardColor?) {
+    private fun playCard(roomId: Long, chosenColor: CardColor?) {
         if (!playerModel.hasSelectedCard()) {
             System.err.println("[GameController] No card selected or invalid index")
             return
@@ -307,6 +303,7 @@ class GameController(private val stage: Stage) {
             playerModel.updateHand(update.hand)
             logger.info("Received and updated player hand: ${update.hand.size} cards.")
         }
+        notifyStateChanged()
     }
 
     fun getCurrentGameState(): GameState? = gameStateModel.gameState
