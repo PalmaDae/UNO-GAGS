@@ -16,16 +16,18 @@ class PlayerState(
         get() = hand.size
 
     fun addCard(card: Card?) {
-        hand.add(card!!)
-        if (hand.size > 2)
-            hasDeclaredUno = false
+        card?.let {
+            if (hand.size > 2)
+                hasDeclaredUno = false
+            hand.add(it)
+        }
     }
 
     fun removeCard(cardIndex: Int): Card? {
         require(!(cardIndex < 0 || cardIndex >= hand.size)) { "Invalid card index: $cardIndex" }
-        val removedCard: Card? = hand.removeAt(cardIndex)
         if (hand.size > 2)
             hasDeclaredUno = false
+        val removedCard: Card? = hand.removeAt(cardIndex)
         return removedCard
     }
 

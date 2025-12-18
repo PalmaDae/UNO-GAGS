@@ -1,21 +1,22 @@
 package server.common
 
-import proto.dto.Payload
 import proto.dto.*
 import server.game.GameSession
 import server.game.PlayerState
 import java.io.IOException
 import java.net.ServerSocket
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 
 class Server : AutoCloseable {
 
     private val serverSocket = ServerSocket(PORT)
     private val clientIndex = AtomicInteger(0)
-    private val rooms = mutableMapOf<Long, RoomOnServer>()
-    private val users = mutableMapOf<Long, PlayerOnServer>()
-    private var nextRoomId = 1L
+    private val rooms = ConcurrentHashMap<Long, RoomOnServer>()
+    private val users = ConcurrentHashMap<Long, PlayerOnServer>()
+    private val nextRoomId = AtomicLong(1L)
     private var running = true
 
     init {
@@ -149,7 +150,7 @@ class Server : AutoCloseable {
     }
 
     private fun handleCreateRoom(connection: Connection, clientId: Long, request: CreateRoomRequest) {
-        val roomId = nextRoomId++
+        val roomId = nextRoomId.incrementAndGet()
         val room = RoomOnServer(
             id = roomId,
             creatorId = clientId,

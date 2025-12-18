@@ -126,7 +126,8 @@ object DeckBuilder {
             )
         }
 
-        repeat(4) { index ->
+        repeat(9) { index ->
+            val number = index + 1
             deck.add(
                 Card(
                     id = "WILD_$index",
