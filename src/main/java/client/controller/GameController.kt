@@ -63,14 +63,26 @@ class GameController(private val stage: Stage) {
         val isAlreadySelected = playerModel.selectedCardIndex == cardIndex
         val roomId = getCurrentRoomId() ?: return
 
-        if (isAlreadySelected)
-            // todo нет обработки того, что выбрана дикая карта
-            // также после получения сообщения об обновлении GameState,
-            // там приходит currentCard, но в интрефейсе она не обновляется
-            // todo также какая-то беда с isAlreadySelected, он возрвращает false, когда должен true, но не всегда
-            playCard(roomId, null)
-        else
-            setSelectedCardIndex(cardIndex)
+        if (isAlreadySelected) {
+            if (cardIndex !in playerModel.hand.indices) {
+                System.err.println("[GameController] Card index out of bounds")
+                return
+            }
+
+            val currentCard = playerModel.hand[cardIndex]  // ← ПОЛУЧИТЬ ИЗ ТЕКУЩЕЙ РУКИ
+            val isWild = currentCard.type.name.contains("WILD")
+
+            if (isWild) {
+                // For wild cards, we need to wait for color selection
+                // Color selection will be handled separately via chooseColor method
+                // This just keeps the card selected so user can choose color
+            } else {
+                playCard(roomId, null)
+                playerModel.selectCard(-1)
+            }
+
+        } else
+            playerModel.selectCard(cardIndex)
 
         notifyStateChanged()
     }
@@ -301,6 +313,7 @@ class GameController(private val stage: Stage) {
     private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
         Platform.runLater {
             playerModel.updateHand(update.hand)
+            playerModel.selectCard(-1)
             logger.info("Received and updated player hand: ${update.hand.size} cards.")
         }
         notifyStateChanged()

@@ -36,26 +36,8 @@ class GameView(
     private val leftPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_LEFT }
     private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
 
-    private fun autoDetectMyId() {
-        // Используем свойство напрямую (без скобок)
-        if (gameController.myPlayerId == null) {
-            val myName = gameController.currentUserName
-            val gameState = gameController.getCurrentGameState()
-
-            // Ищем в Map: players - это Map<Long, PlayerGameInfo>
-            val meInGame = gameState?.players?.entries?.find { it.value.username == myName }
-
-            if (meInGame != null) {
-                gameController.myPlayerId = meInGame.key
-                println("ID auto-detected: ${meInGame.key}")
-            }
-        }
-    }
-
     init {
-        gameController.setOnStateChanged {
-            Platform.runLater { updateUI() }
-        }
+        gameController.setOnStateChanged { updateUI() }
 
         centerCardDisplay.fitWidth = CARD_WIDTH * 1.5
         centerCardDisplay.fitHeight = CARD_HEIGHT * 1.5
@@ -122,6 +104,22 @@ class GameView(
         updateUI()
     }
 
+    private fun autoDetectMyId() {
+        // Используем свойство напрямую (без скобок)
+        if (gameController.myPlayerId == null) {
+            val myName = gameController.currentUserName
+            val gameState = gameController.getCurrentGameState()
+
+            // Ищем в Map: players - это Map<Long, PlayerGameInfo>
+            val meInGame = gameState?.players?.entries?.find { it.value.username == myName }
+
+            if (meInGame != null) {
+                gameController.myPlayerId = meInGame.key
+                println("ID auto-detected: ${meInGame.key}")
+            }
+        }
+    }
+
     private fun renderOpponents(opponents: List<PlayerDisplayInfo>) {
         topPlayerBox.children.clear()
         leftPlayerBox.children.clear()
@@ -140,19 +138,49 @@ class GameView(
             1 -> {
                 topPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString()))
             }
+
             2 -> {
-                leftPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString(), isVertical = true))
-                rightPlayerBox.children.add(createOpponentDisplay(sortedOpponents[1], currentTurnPlayerId?.toString(), isVertical = true))
+                leftPlayerBox.children.add(
+                    createOpponentDisplay(
+                        sortedOpponents[0],
+                        currentTurnPlayerId?.toString(),
+                        isVertical = true
+                    )
+                )
+                rightPlayerBox.children.add(
+                    createOpponentDisplay(
+                        sortedOpponents[1],
+                        currentTurnPlayerId?.toString(),
+                        isVertical = true
+                    )
+                )
             }
+
             3 -> {
-                leftPlayerBox.children.add(createOpponentDisplay(sortedOpponents[0], currentTurnPlayerId?.toString(), isVertical = true))
+                leftPlayerBox.children.add(
+                    createOpponentDisplay(
+                        sortedOpponents[0],
+                        currentTurnPlayerId?.toString(),
+                        isVertical = true
+                    )
+                )
                 topPlayerBox.children.add(createOpponentDisplay(sortedOpponents[1], currentTurnPlayerId?.toString()))
-                rightPlayerBox.children.add(createOpponentDisplay(sortedOpponents[2], currentTurnPlayerId?.toString(), isVertical = true))
+                rightPlayerBox.children.add(
+                    createOpponentDisplay(
+                        sortedOpponents[2],
+                        currentTurnPlayerId?.toString(),
+                        isVertical = true
+                    )
+                )
             }
         }
     }
 
-    private fun createOpponentDisplay(player: PlayerDisplayInfo, currentTurnPlayerId: String?, isVertical: Boolean = false): Pane {
+    private fun createOpponentDisplay(
+        player: PlayerDisplayInfo,
+        currentTurnPlayerId: String?,
+        isVertical: Boolean = false
+    ): Pane {
         val isCurrentTurn = player.userId.toString() == currentTurnPlayerId
 
         val nameLabel = Label(player.username).apply {
@@ -244,7 +272,8 @@ class GameView(
 
     private fun renderPlayerHand(hand: List<Card>) {
         playerHandBox.children.clear()
-        hand.forEachIndexed { index, card ->
+        hand.forEachIndexed { index, _ ->
+            val card = hand[index]
             val cardImage = ResourceLoader.loadCardImage(card)
 
             val cardImageView = ImageView(cardImage).apply {
@@ -295,10 +324,11 @@ class GameView(
             }
         }
 
-        val layout = VBox(20.0, Label(message).apply { font = Font(Font.getDefault().name, 14.0) }, colorButtons).apply {
-            alignment = Pos.CENTER
-            padding = Insets(20.0)
-        }
+        val layout =
+            VBox(20.0, Label(message).apply { font = Font(Font.getDefault().name, 14.0) }, colorButtons).apply {
+                alignment = Pos.CENTER
+                padding = Insets(20.0)
+            }
 
         chooserStage.scene = Scene(layout, 300.0, 150.0)
         chooserStage.showAndWait()
