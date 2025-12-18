@@ -117,6 +117,12 @@ class Server : AutoCloseable {
         }
     }
 
+    private fun sendHandUpdates(room: RoomOnServer) {
+        room.players.forEach { player ->
+            sendHandUpdate(room, player.id)
+        }
+    }
+
     private fun broadcastGameState(room: RoomOnServer) {
         room.gameSession?.let { session ->
             val gameState = session.gameState
@@ -134,6 +140,7 @@ class Server : AutoCloseable {
                 is StartGameRequest -> handleStartGame(connection, clientId, payload)
                 is PlayCardRequest -> handlePlayCard(connection, clientId, payload)
                 is DrawCardRequest -> handleDrawCard(connection, clientId, payload)
+                is ChooseColorRequest -> handleChooseColor(connection, clientId, payload)
                 is SayUnoRequest -> handleSayUno(connection, clientId, payload)
                 is PingMessage -> connection.sendMessage(PongMessage())
                 is PongMessage -> logger.info("Received PONG from client #$clientId")
@@ -150,7 +157,7 @@ class Server : AutoCloseable {
     }
 
     private fun handleCreateRoom(connection: Connection, clientId: Long, request: CreateRoomRequest) {
-        val roomId = nextRoomId.incrementAndGet()
+        val roomId = nextRoomId.getAndIncrement()
         val room = RoomOnServer(
             id = roomId,
             creatorId = clientId,
@@ -233,10 +240,14 @@ class Server : AutoCloseable {
         if (roomAndSession == null) return
 
         try {
-            roomAndSession.component2().setChosenColor(request.chosenColor)
+            val room = roomAndSession.component1()
+            val session = roomAndSession.component2()
+
+            session.setChosenColor(request.chosenColor)
             connection.sendMessage(OkMessage("Color chosen successfully"))
 
-            broadcastGameState(roomAndSession.component1())
+            sendHandUpdates(room)
+            broadcastGameState(room)
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid color choice"))
@@ -251,11 +262,14 @@ class Server : AutoCloseable {
         if (roomAndSession == null) return
 
         try {
-            roomAndSession.component2().playCard(clientId, request.cardIndex, request.chosenColor)
+            val room = roomAndSession.component1()
+            val session = roomAndSession.component2()
+
+            session.playCard(clientId, request.cardIndex, request.chosenColor)
             connection.sendMessage(OkMessage("Card played successfully"))
 
-            sendHandUpdate(roomAndSession.component1(), clientId)
-            broadcastGameState(roomAndSession.component1())
+            sendHandUpdates(room)
+            broadcastGameState(room)
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
@@ -270,12 +284,14 @@ class Server : AutoCloseable {
         if (roomAndSession == null) return
 
         try {
-            roomAndSession.component2().drawCard(clientId)
+            val room = roomAndSession.component1()
+            val session = roomAndSession.component2()
+
+            session.drawCard(clientId)
             connection.sendMessage(OkMessage("Card drawn successfully"))
 
-            sendHandUpdate(roomAndSession.component1(), clientId)
-
-            broadcastGameState(roomAndSession.component1())
+            sendHandUpdates(room)
+            broadcastGameState(room)
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))

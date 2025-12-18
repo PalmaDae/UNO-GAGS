@@ -33,6 +33,10 @@ class GameView(
     private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
 
     init {
+        gameController.setOnPlayerHandUpdated { newHand ->
+            renderPlayerHand(newHand)
+        }
+
         gameController.setOnStateChanged { updateUI() }
 
         initializeComponents()
@@ -278,13 +282,26 @@ class GameView(
     }
 
     private fun renderPlayerHand(hand: List<Card>) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater { renderPlayerHand(hand) }
+            return
+        }
+
+        println(
+            "[GameView] renderPlayerHand(): ${hand.size} cards (thread=${Thread.currentThread().name}, fx=${Platform.isFxApplicationThread()})"
+        )
+
         playerHandBox.children.clear()
-        hand.forEachIndexed { index, _ ->
-            addCardToHandInternal(index, hand[index])
+        hand.forEachIndexed { index, card ->
+            addCardToHandInternal(index, card)
         }
     }
 
     private fun addCardToHandInternal(index: Int, card: Card) {
+        println(
+            "[GameView] addCardToHandInternal(index=$index, cardId=${card.id}, type=${card.type}, color=${card.color}) (thread=${Thread.currentThread().name}, fx=${Platform.isFxApplicationThread()})"
+        )
+
         val cardImage = ResourceLoader.loadCardImage(card)
 
         val cardImageView = ImageView(cardImage).apply {
@@ -374,6 +391,11 @@ class GameView(
 
 
     fun updateUI() {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater { updateUI() }
+            return
+        }
+
         autoDetectMyId()
 
         val gameState = gameController.getCurrentGameState()
@@ -389,6 +411,11 @@ class GameView(
     }
 
     private fun updateGameStateUI(gameState: GameState, myPlayerId: Long, myHand: List<Card>) {
+        if (!Platform.isFxApplicationThread()) {
+            Platform.runLater { updateGameStateUI(gameState, myPlayerId, myHand) }
+            return
+        }
+
         val isMyTurn = gameState.currentPlayerId == myPlayerId
 
         updateCurrentCard(gameState.currentCard)
@@ -403,9 +430,7 @@ class GameView(
         renderPlayerHand(myHand)
 
         if (isMyTurn && gameState.gamePhase == GamePhase.CHOOSING_COLOR) {
-            Platform.runLater {
-                showColorChooser(true)
-            }
+            showColorChooser(true)
         }
     }
 

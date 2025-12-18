@@ -19,21 +19,13 @@ class GameController(private val stage: Stage) {
     private val playerModel = PlayerModel()
     private val roomModel = RoomModel()
     private val gameStateModel = GameStateModel()
-    private val players = mutableListOf<PlayerModel>()
     private var onStateChanged: Runnable? = null
+    private var onPlayerHandUpdated: ((List<Card>) -> Unit)? = null
     private var currentRoomId: Long? = null
     var passwordRoom: String? = null
     var currentUserName: String = "Guest"
     var currentUserAvatar: String = "default.png"
     var myPlayerId: Long? = null
-    private var previousHand: List<Card> = emptyList()
-
-
-    fun setUserData(name: String, avatar: String) {
-        this.currentUserName = name
-        this.currentUserAvatar = avatar
-        println("[GameController] User data saved: $name, $avatar")
-    }
 
     init {
         networkClient.setMessageListener(::handleMessage)
@@ -44,6 +36,16 @@ class GameController(private val stage: Stage) {
     fun disconnect() {
         networkClient.disconnect()
         resetAllModels()
+    }
+
+    fun setOnPlayerHandUpdated(callback: ((List<Card>) -> Unit)?) {
+        onPlayerHandUpdated = callback
+    }
+
+    fun setUserData(name: String, avatar: String) {
+        this.currentUserName = name
+        this.currentUserAvatar = avatar
+        println("[GameController] User data saved: $name, $avatar")
     }
 
     fun closedGame() {
@@ -315,43 +317,23 @@ class GameController(private val stage: Stage) {
         Platform.runLater {
             playerModel.updateHand(update.hand)
             playerModel.selectCard(-1)
-            logger.info("Received and updated player hand: ${update.hand.size} cards.")
+            onPlayerHandUpdated?.invoke(update.hand)
+            notifyStateChanged()
         }
-        notifyStateChanged()
     }
+
 
     fun getCurrentGameState(): GameState? = gameStateModel.gameState
     fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
     fun getCurrentRoomId(): Long? = roomModel.currentRoomId
-    fun getMyHand(): List<Card> = playerModel.hand.toList()
+
+    fun getMyHand(): List<Card> {
+        val handCopy = playerModel.hand.toList()
+        println("[GameController] getMyHand(): ${handCopy.size} cards (thread=${Thread.currentThread().name})")
+        return handCopy
+    }
+
     fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
-    fun setSelectedCardIndex(index: Int) = playerModel.selectCard(index)
-
-    private fun handleGameStateUpdate(state: GameState) {
-        updateCurrentCard(state.currentCard)
-        updateGamePhase(state.gamePhase)
-        updateCurrentPlayer(state.currentPlayerId)
-    }
-
-    private fun updateCurrentCard(card: Card?) {
-        // UI will be updated via notifyStateChanged
-    }
-
-    private fun updateGamePhase(phase: GamePhase) {
-        // UI will be updated via notifyStateChanged
-    }
-
-    private fun updateCurrentPlayer(playerId: Long) {
-        // UI will be updated via notifyStateChanged
-    }
-
-    private fun showGameError(message: String) {
-        logger.warning("Game error: $message")
-    }
-
-    private fun showPlayerInfo(message: String) {
-        logger.info(message)
-    }
 
     companion object {
         private val logger = Logger.getLogger(GameController::class.java.name)
