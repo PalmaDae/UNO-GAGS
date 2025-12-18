@@ -26,6 +26,7 @@ class GameController(private val stage: Stage) {
     var currentUserName: String = "Guest"
     var currentUserAvatar: String = "default.png"
     var myPlayerId: Long? = null
+    private var previousHand: List<Card> = emptyList()
 
 
     fun setUserData(name: String, avatar: String) {
@@ -325,6 +326,32 @@ class GameController(private val stage: Stage) {
     fun getMyHand(): List<Card> = playerModel.hand.toList()
     fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
     fun setSelectedCardIndex(index: Int) = playerModel.selectCard(index)
+
+    private fun handleGameStateUpdate(state: GameState) {
+        updateCurrentCard(state.currentCard)
+        updateGamePhase(state.gamePhase)
+        updateCurrentPlayer(state.currentPlayerId)
+    }
+
+    private fun updateCurrentCard(card: Card?) {
+        // UI will be updated via notifyStateChanged
+    }
+
+    private fun updateGamePhase(phase: GamePhase) {
+        // UI will be updated via notifyStateChanged
+    }
+
+    private fun updateCurrentPlayer(playerId: Long) {
+        // UI will be updated via notifyStateChanged
+    }
+
+    private fun showGameError(message: String) {
+        logger.warning("Game error: $message")
+    }
+
+    private fun showPlayerInfo(message: String) {
+        logger.info(message)
+    }
 
     companion object {
         private val logger = Logger.getLogger(GameController::class.java.name)

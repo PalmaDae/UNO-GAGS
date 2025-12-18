@@ -15,17 +15,13 @@ import javafx.scene.layout.*
 import javafx.scene.paint.Color
 import javafx.scene.text.Font
 import javafx.stage.Stage
-import proto.dto.Card
-import proto.dto.CardColor
-import proto.dto.CardType
-import proto.dto.GamePhase
-import proto.dto.PlayerDisplayInfo
+import proto.dto.*
 
 class GameView(
     private val stage: Stage,
     private val gameController: GameController
 ) {
-    var scene: Scene
+    lateinit var scene: Scene
     private val centerCardDisplay = ImageView()
     private val playerHandBox = HBox(16.0)
     private val gameStatusLabel = Label("Waiting to start...")
@@ -39,11 +35,16 @@ class GameView(
     init {
         gameController.setOnStateChanged { updateUI() }
 
+        initializeComponents()
+        setupLayouts()
+        setupEventHandlers()
+
+        updateUI()
+    }
+
+    private fun initializeComponents() {
         centerCardDisplay.fitWidth = CARD_WIDTH * 1.5
         centerCardDisplay.fitHeight = CARD_HEIGHT * 1.5
-        val centerBox = VBox(centerCardDisplay).apply {
-            alignment = Pos.CENTER
-        }
 
         playerHandBox.alignment = Pos.CENTER
         playerHandBox.minHeight = CARD_HEIGHT + 20.0
@@ -52,13 +53,20 @@ class GameView(
             prefWidth = 160.0
             setOnAction { handleSayUno() }
         }
-        val unoWrapper = VBox(10.0, unoButton).apply {
-            alignment = Pos.CENTER
-        }
 
         drawButton.apply {
             prefWidth = 120.0
             setOnAction { handleDrawCard() }
+        }
+    }
+
+    private fun setupLayouts() {
+        val centerBox = VBox(centerCardDisplay).apply {
+            alignment = Pos.CENTER
+        }
+
+        val unoWrapper = VBox(10.0, unoButton).apply {
+            alignment = Pos.CENTER
         }
 
         val exitButton = Button("Exit").apply {
@@ -78,7 +86,6 @@ class GameView(
 
         root.apply {
             padding = Insets(20.0)
-
             this.center = centerBox
             this.bottom = VBox(10.0, unoWrapper, playerHandBox).apply { alignment = Pos.CENTER }
             this.left = leftPlayerBox
@@ -96,12 +103,12 @@ class GameView(
         } else {
             System.err.println("FATAL ERROR: style.css not found in resources/css/ (Path used: /css/style.css)")
         }
+    }
 
+    private fun setupEventHandlers() {
         scene.setOnKeyPressed { event ->
             if (event.code == KeyCode.SPACE) unoButton.fire()
         }
-
-        updateUI()
     }
 
     private fun autoDetectMyId() {
@@ -273,28 +280,59 @@ class GameView(
     private fun renderPlayerHand(hand: List<Card>) {
         playerHandBox.children.clear()
         hand.forEachIndexed { index, _ ->
-            val card = hand[index]
-            val cardImage = ResourceLoader.loadCardImage(card)
-
-            val cardImageView = ImageView(cardImage).apply {
-                fitWidth = CARD_WIDTH
-                fitHeight = CARD_HEIGHT
-            }
-
-            val cardContainer = StackPane(cardImageView).apply {
-                style = if (gameController.getSelectedCardIndex() == index) {
-                    "-fx-border-color: yellow; -fx-border-width: 3;"
-                } else {
-                    "-fx-border-color: transparent; -fx-border-width: 3;"
-                }
-
-                setOnMouseClicked {
-                    handleCardClick(index, card)
-                }
-            }
-
-            playerHandBox.children.add(cardContainer)
+            addCardToHandInternal(index, hand[index])
         }
+    }
+
+    private fun addCardToHandInternal(index: Int, card: Card) {
+        val cardImage = ResourceLoader.loadCardImage(card)
+
+        val cardImageView = ImageView(cardImage).apply {
+            fitWidth = CARD_WIDTH
+            fitHeight = CARD_HEIGHT
+        }
+
+        val cardContainer = StackPane(cardImageView).apply {
+            style = if (gameController.getSelectedCardIndex() == index) {
+                "-fx-border-color: yellow; -fx-border-width: 3;"
+            } else {
+                "-fx-border-color: transparent; -fx-border-width: 3;"
+            }
+
+            setOnMouseClicked {
+                handleCardClick(index, card)
+            }
+        }
+
+        playerHandBox.children.add(cardContainer)
+    }
+
+    fun updateCurrentCard(card: Card?) {
+        val displayCard = card ?: Card(id = "none", color = CardColor.WILD, type = CardType.BACK)
+        centerCardDisplay.image = ResourceLoader.loadCardImage(displayCard)
+        updateBackgroundFromCard(card)
+    }
+
+    fun updateGameStatus(phase: GamePhase) {
+        when (phase) {
+            GamePhase.WAITING_TURN -> {
+                drawButton.isDisable = true
+                unoButton.isDisable = true
+            }
+            GamePhase.CHOOSING_COLOR -> {
+                drawButton.isDisable = true
+                unoButton.isDisable = true
+            }
+            else -> {
+                drawButton.isDisable = false
+                unoButton.isDisable = false
+            }
+        }
+    }
+
+    private fun updateBackgroundFromCard(card: Card?) {
+        val cardColor = card?.color ?: CardColor.WILD
+        root.style = "-fx-background-color: derive(${ResourceLoader.toCssColor(cardColor)}, -60%); -fx-padding: 20;"
     }
 
     private fun showColorChooser(isWildCard: Boolean) {
@@ -347,14 +385,14 @@ class GameView(
             return
         }
 
-        val currentCard = gameState.currentCard
+        updateGameStateUI(gameState, myPlayerId, myHand)
+    }
+
+    private fun updateGameStateUI(gameState: GameState, myPlayerId: Long, myHand: List<Card>) {
         val isMyTurn = gameState.currentPlayerId == myPlayerId
 
-        val cardColor = currentCard?.color ?: CardColor.WILD
-        root.style = "-fx-background-color: derive(${ResourceLoader.toCssColor(cardColor)}, -60%); -fx-padding: 20;"
-
-        val displayCard = currentCard ?: Card(id = "none", color = CardColor.WILD, type = CardType.BACK)
-        centerCardDisplay.image = ResourceLoader.loadCardImage(displayCard)
+        updateCurrentCard(gameState.currentCard)
+        updateGameStatus(gameState.gamePhase)
 
         val turnStatus = if (isMyTurn) " ★ YOUR TURN ★" else ""
         gameStatusLabel.text = "Current Player ID: ${gameState.currentPlayerId}$turnStatus"

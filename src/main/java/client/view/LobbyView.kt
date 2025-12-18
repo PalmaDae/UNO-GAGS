@@ -86,20 +86,27 @@ class LobbyView(
 
         val isHost = currentPlayers.any { it.username == myName && it.isOwner }
 
-        passwordField.text = gameController.passwordRoom
+        updateRoomStatus(gameController.passwordRoom ?: "")
+        updatePlayerList(currentPlayers)
 
+        startGameButton.isVisible = isHost
+        startGameButton.isDisable = currentPlayers.size < 2
+    }
+
+    private fun updatePlayerList(players: List<PlayerInfo>) {
         playersBox.children.clear()
-        if (currentPlayers.isEmpty()) {
+        if (players.isEmpty()) {
             playersBox.children.add(Label("Waiting for players to join..."))
         } else {
-            currentPlayers.forEach { playerInfo: PlayerInfo ->
+            players.forEach { playerInfo: PlayerInfo ->
                 val playerBox = createPlayerBox(playerInfo)
                 playersBox.children.add(playerBox)
             }
         }
+    }
 
-        startGameButton.isVisible = isHost
-        startGameButton.isDisable = currentPlayers.size < 2
+    private fun updateRoomStatus(status: String) {
+        passwordField.text = status
     }
 
     private fun createPlayerBox(playerInfo: PlayerInfo): HBox {
