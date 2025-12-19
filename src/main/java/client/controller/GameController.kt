@@ -54,11 +54,23 @@ class GameController(private val stage: Stage) {
     }
 
     fun chooseColor(roomId: Long, color: CardColor) {
-        updateGamePhase(GamePhase.WAITING_TURN)
+        val cardIndex = playerModel.selectedCardIndex
+        if (cardIndex !in playerModel.hand.indices) return
 
-        val request = PlayCardRequest(roomId, playerModel.selectedCardIndex, color)
+        val playedCard = playerModel.hand[cardIndex]
+
+        gameStateModel.gameState?.let { currentGS ->
+            val coloredCard = playedCard.copy(color = color)
+            val updatedState = currentGS.copy(currentCard = coloredCard)
+            gameStateModel.updateState(updatedState)
+        }
+
+        val request = PlayCardRequest(roomId, cardIndex, color)
         networkClient.sendMessage(request, Method.PLAY_CARD)
 
+        playerModel.removeCardLocally(cardIndex)
+
+        updateGamePhase(GamePhase.WAITING_TURN)
         playerModel.selectCard(-1)
         notifyStateChanged()
     }
@@ -70,32 +82,30 @@ class GameController(private val stage: Stage) {
 
 
     fun handleCardSelection(cardIndex: Int, card: Card) {
-        val isAlreadySelected = playerModel.selectedCardIndex == cardIndex
         val roomId = getCurrentRoomId() ?: return
 
-        if (isAlreadySelected) {
-            if (cardIndex !in playerModel.hand.indices) {
-                System.err.println("[GameController] Card index out of bounds")
+        if (playerModel.selectedCardIndex == cardIndex) {
+
+            if (!canPlayCard(card)) {
+                println("[GameController] Нельзя положить ${card.id}!")
                 return
             }
 
-            val currentCard = playerModel.hand[cardIndex]  // ← ПОЛУЧИТЬ ИЗ ТЕКУЩЕЙ РУКИ
-            val isWild = currentCard.type.name.contains("WILD")
-
-            if (isWild) {
-                // For wild cards, we need to wait for color selection
-                // Color selection will be handled separately via chooseColor method
-                // This just keeps the card selected so user can choose color
+            if (card.type.name.contains("WILD")) {
                 updateGamePhase(GamePhase.CHOOSING_COLOR)
             } else {
+                gameStateModel.gameState?.let { gs ->
+                    gameStateModel.updateState(gs.copy(currentCard = card))
+                }
+
                 playCard(roomId, null)
+
+                playerModel.removeCardLocally(cardIndex)
                 updateGamePhase(GamePhase.WAITING_TURN)
-                playerModel.selectCard(-1)
             }
-
-        } else
+        } else {
             playerModel.selectCard(cardIndex)
-
+        }
         notifyStateChanged()
     }
 
@@ -106,6 +116,18 @@ class GameController(private val stage: Stage) {
             gameStateModel.updateState(updatedState)
             println("[GameController] Phase changed to: $phase")
         }
+    }
+
+    private fun canPlayCard(playedCard: Card): Boolean {
+        val currentTopCard = gameStateModel.gameState?.currentCard ?: return true
+
+        val colorMatch = playedCard.color == currentTopCard.color || playedCard.color == CardColor.WILD
+        val typeMatch = playedCard.type == currentTopCard.type && playedCard.type != CardType.NUMBER
+        val numberMatch = playedCard.type == CardType.NUMBER && playedCard.number == currentTopCard.number
+
+        val isWild = playedCard.type == CardType.WILD || playedCard.type == CardType.WILD_DRAW_FOUR
+
+        return colorMatch || typeMatch || numberMatch || isWild
     }
 
     fun getOpponentsInOrder(): List<PlayerDisplayInfo> {
@@ -203,34 +225,37 @@ class GameController(private val stage: Stage) {
     private fun playCard(roomId: Long, chosenColor: CardColor?) {
         val index = playerModel.selectedCardIndex
 
-        val card = playerModel.hand[index]
-
-        if (index !in playerModel.hand.indices) {
-            System.err.println("[GameController] CANNOT PLAY: Invalid index $index. Hand size: ${playerModel.hand.size}")
-            return
-        }
-
-        if (card.type.name.contains("WILD") && chosenColor == null) {
-            println("[GameController] Wild card selected, waiting for color choice UI...")
-            return
-        }
-
-        if (!playerModel.hasSelectedCard()) {
-            System.err.println("[GameController] No card selected or invalid index")
+        if (index == -1) {
+            System.err.println("[GameController] CANNOT PLAY: No index selected")
             return
         }
 
         val request = PlayCardRequest(
-            roomId,
-            playerModel.selectedCardIndex,
-            chosenColor
+            roomId = roomId,
+            cardIndex = index,
+            chosenColor = chosenColor
         )
+
+        println("[Sender] Sending PlayCard: index=$index, color=$chosenColor")
         networkClient.sendMessage(request, Method.PLAY_CARD)
+
+        playerModel.selectCard(-1)
     }
 
     fun drawCard(roomId: Long) {
+        println("[GameController] Попытка взять карту (Draw Card) в комнате $roomId")
+
+        if (gameStateModel.gameState?.gamePhase == GamePhase.CHOOSING_COLOR) {
+            println("[GameController] Сброс фазы выбора цвета перед добором карты")
+            updateGamePhase(GamePhase.WAITING_TURN)
+        }
+
         val request = DrawCardRequest(roomId)
         networkClient.sendMessage(request, Method.DRAW_CARD)
+
+        playerModel.selectCard(-1)
+
+        notifyStateChanged()
     }
 
     fun sayUno(roomId: Long) {
@@ -346,11 +371,17 @@ class GameController(private val stage: Stage) {
     }
 
     private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
-        println("[DEBUG] Server sent cards: ${update.hand.map { it.id }}")
+        val localCount = playerModel.hand.size
+        val serverCount = update.hand.size
+
+        if (gameStateModel.gameState?.gamePhase == GamePhase.WAITING_TURN && serverCount > localCount) {
+            println("[DEBUG] Блокировка: Сервер прислал старую руку ($serverCount), оставляем локальную ($localCount)")
+            return
+        }
+
         playerModel.updateHand(update.hand)
-            playerModel.selectCard(-1)
-            println("[GameController] Hand updated. Notify UI...")
-            notifyStateChanged()
+        playerModel.selectCard(-1)
+        notifyStateChanged()
     }
 
 

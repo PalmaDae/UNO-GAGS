@@ -100,53 +100,45 @@ class GameSession(
     }
 
     fun playCard(playerId: Long, cardIndex: Int, chosenColor: CardColor?) {
-        // Validate it's the player's turn
         check(playerId == this.currentPlayerId) { "Not your turn" }
 
-        val player: PlayerState = players.get(playerId)!!
-        requireNotNull(player) { "Player not found: $playerId" }
-
-        // Get the card to play
+        val player: PlayerState = players[playerId] ?: throw IllegalArgumentException("Player not found")
         val hand = player.hand
-        require(!(cardIndex < 0 || cardIndex >= hand.size)) { "Invalid card index: $cardIndex" }
+        require(cardIndex in hand.indices) { "Invalid card index: $cardIndex" }
 
         val card = hand[cardIndex]
 
-        // Validate the card can be played
         check(canPlayCard(card)) { "Cannot play this card" }
 
-        // Check UNO rules if player has 2 cards after playing
-        val willHaveOneCardLeft = hand.size == 2
-        if (willHaveOneCardLeft && !player.hasDeclaredUno) {
-            // Player forgot to say UNO - penalty of 2 cards
+        if ((card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) && chosenColor == null) {
+            val wildCard = player.removeCard(cardIndex)
+            deckPiles.playCard(wildCard!!)
+
+            this.gamePhase = GamePhase.CHOOSING_COLOR
+            return
+        }
+
+        if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
+            this.chosenColor = chosenColor
+        } else {
+            this.chosenColor = null
+        }
+
+        if (hand.size == 2 && !player.hasDeclaredUno) {
             player.addCard(deckPiles.drawCard())
             player.addCard(deckPiles.drawCard())
         }
 
-        // Remove and play the card
         val playedCard = player.removeCard(cardIndex)
-        deckPiles.playCard(playedCard)
+        deckPiles.playCard(playedCard!!)
 
-        // Handle wild card color choice
-        if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
-            if (chosenColor == null) {
-                this.gamePhase = GamePhase.CHOOSING_COLOR
-                return  // Wait for color choice
-            }
-            this.chosenColor = chosenColor
-        } else
-            this.chosenColor = null // Reset color choice for non-wild cards
+        applyCardEffect(playedCard)
 
-        // Apply card effects
-        applyCardEffect(playedCard!!)
-
-        // Check for win condition
         if (player.cardCount == 0) {
             gamePhase = GamePhase.FINISHED
             return
         }
 
-        // Move to next player
         moveToNextPlayer()
         gamePhase = GamePhase.WAITING_TURN
     }
@@ -156,9 +148,8 @@ class GameSession(
 
         this.chosenColor = color
 
-        // Apply the wild card effect and move to next player
-        val currentCard = this.currentCard
-        applyCardEffect(currentCard)
+        applyCardEffect(this.currentCard)
+
         moveToNextPlayer()
         gamePhase = GamePhase.WAITING_TURN
     }
