@@ -54,13 +54,20 @@ class GameController(private val stage: Stage) {
     }
 
     fun chooseColor(roomId: Long, color: CardColor) {
-        val request = ChooseColorRequest(roomId, color)
-        networkClient.sendMessage(request, Method.CHOOSE_COLOR)
+        updateGamePhase(GamePhase.WAITING_TURN)
+
+        val request = PlayCardRequest(roomId, playerModel.selectedCardIndex, color)
+        networkClient.sendMessage(request, Method.PLAY_CARD)
+
+        playerModel.selectCard(-1)
+        notifyStateChanged()
     }
 
     fun setOnStateChanged(callback: Runnable?) {
         onStateChanged = callback
     }
+
+
 
     fun handleCardSelection(cardIndex: Int, card: Card) {
         val isAlreadySelected = playerModel.selectedCardIndex == cardIndex
@@ -79,8 +86,10 @@ class GameController(private val stage: Stage) {
                 // For wild cards, we need to wait for color selection
                 // Color selection will be handled separately via chooseColor method
                 // This just keeps the card selected so user can choose color
+                updateGamePhase(GamePhase.CHOOSING_COLOR)
             } else {
                 playCard(roomId, null)
+                updateGamePhase(GamePhase.WAITING_TURN)
                 playerModel.selectCard(-1)
             }
 
@@ -88,6 +97,15 @@ class GameController(private val stage: Stage) {
             playerModel.selectCard(cardIndex)
 
         notifyStateChanged()
+    }
+
+
+    private fun updateGamePhase(phase: GamePhase) {
+        gameStateModel.gameState?.let {
+            val updatedState = it.copy(gamePhase = phase)
+            gameStateModel.updateState(updatedState)
+            println("[GameController] Phase changed to: $phase")
+        }
     }
 
     fun getOpponentsInOrder(): List<PlayerDisplayInfo> {
@@ -183,6 +201,20 @@ class GameController(private val stage: Stage) {
     }
 
     private fun playCard(roomId: Long, chosenColor: CardColor?) {
+        val index = playerModel.selectedCardIndex
+
+        val card = playerModel.hand[index]
+
+        if (index !in playerModel.hand.indices) {
+            System.err.println("[GameController] CANNOT PLAY: Invalid index $index. Hand size: ${playerModel.hand.size}")
+            return
+        }
+
+        if (card.type.name.contains("WILD") && chosenColor == null) {
+            println("[GameController] Wild card selected, waiting for color choice UI...")
+            return
+        }
+
         if (!playerModel.hasSelectedCard()) {
             System.err.println("[GameController] No card selected or invalid index")
             return
@@ -314,12 +346,11 @@ class GameController(private val stage: Stage) {
     }
 
     private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
-        Platform.runLater {
-            playerModel.updateHand(update.hand)
+        println("[DEBUG] Server sent cards: ${update.hand.map { it.id }}")
+        playerModel.updateHand(update.hand)
             playerModel.selectCard(-1)
-            onPlayerHandUpdated?.invoke(update.hand)
+            println("[GameController] Hand updated. Notify UI...")
             notifyStateChanged()
-        }
     }
 
 

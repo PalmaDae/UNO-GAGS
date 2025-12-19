@@ -31,12 +31,9 @@ class GameView(
     private val topPlayerBox = HBox(8.0).apply { alignment = Pos.CENTER }
     private val leftPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_LEFT }
     private val rightPlayerBox = VBox(8.0).apply { alignment = Pos.CENTER_RIGHT }
+    private var isColorChooserShowing = false
 
     init {
-        gameController.setOnPlayerHandUpdated { newHand ->
-            renderPlayerHand(newHand)
-        }
-
         gameController.setOnStateChanged { updateUI() }
 
         initializeComponents()
@@ -287,11 +284,15 @@ class GameView(
             return
         }
 
-        println(
-            "[GameView] renderPlayerHand(): ${hand.size} cards (thread=${Thread.currentThread().name}, fx=${Platform.isFxApplicationThread()})"
-        )
+        println("[UI-Debug] Rendering hand. Cards count: ${hand.size}")
 
         playerHandBox.children.clear()
+
+        if (hand.isEmpty()) {
+            println("[UI-Debug] Warning: Hand is empty!")
+            return
+        }
+
         hand.forEachIndexed { index, card ->
             addCardToHandInternal(index, card)
         }
@@ -418,6 +419,14 @@ class GameView(
 
         val isMyTurn = gameState.currentPlayerId == myPlayerId
 
+        if (isMyTurn && gameState.gamePhase == GamePhase.CHOOSING_COLOR) {
+            if (!isColorChooserShowing) {
+                isColorChooserShowing = true
+                showColorChooser(true)
+                isColorChooserShowing = false
+            }
+        }
+
         updateCurrentCard(gameState.currentCard)
         updateGameStatus(gameState.gamePhase)
 
@@ -428,10 +437,6 @@ class GameView(
 
         renderOpponents(gameController.getOpponentsInOrder())
         renderPlayerHand(myHand)
-
-        if (isMyTurn && gameState.gamePhase == GamePhase.CHOOSING_COLOR) {
-            showColorChooser(true)
-        }
     }
 
     companion object {
