@@ -54,25 +54,13 @@ class GameController(private val stage: Stage) {
     }
 
     fun chooseColor(roomId: Long, color: CardColor) {
-        val cardIndex = playerModel.selectedCardIndex
-        if (cardIndex !in playerModel.hand.indices) return
+        val request = ChooseColorRequest(roomId, color)
 
-        val playedCard = playerModel.hand[cardIndex]
+        networkClient.sendMessage(request, Method.CHOOSE_COLOR)
 
-        gameStateModel.gameState?.let { currentGS ->
-            val coloredCard = playedCard.copy(color = color)
-            val updatedState = currentGS.copy(currentCard = coloredCard)
-            gameStateModel.updateState(updatedState)
-        }
-
-        val request = PlayCardRequest(roomId, cardIndex, color)
-        networkClient.sendMessage(request, Method.PLAY_CARD)
-
-        playerModel.removeCardLocally(cardIndex)
-
-        updateGamePhase(GamePhase.WAITING_TURN)
         playerModel.selectCard(-1)
-        notifyStateChanged()
+
+        println("[GameController] Color $color sent to server for room $roomId")
     }
 
     fun setOnStateChanged(callback: Runnable?) {
@@ -85,21 +73,17 @@ class GameController(private val stage: Stage) {
         val roomId = getCurrentRoomId() ?: return
 
         if (playerModel.selectedCardIndex == cardIndex) {
-
             if (!canPlayCard(card)) {
                 println("[GameController] Нельзя положить ${card.id}!")
                 return
             }
 
-            if (card.type.name.contains("WILD")) {
-                updateGamePhase(GamePhase.CHOOSING_COLOR)
-            } else {
-                gameStateModel.gameState?.let { gs ->
-                    gameStateModel.updateState(gs.copy(currentCard = card))
-                }
-
+            if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
                 playCard(roomId, null)
 
+                updateGamePhase(GamePhase.CHOOSING_COLOR)
+            } else {
+                playCard(roomId, null)
                 playerModel.removeCardLocally(cardIndex)
                 updateGamePhase(GamePhase.WAITING_TURN)
             }
@@ -119,15 +103,23 @@ class GameController(private val stage: Stage) {
     }
 
     private fun canPlayCard(playedCard: Card): Boolean {
-        val currentTopCard = gameStateModel.gameState?.currentCard ?: return true
+        val gs = gameStateModel.gameState ?: return true
+        val currentTopCard = gs.currentCard ?: return true
 
-        val colorMatch = playedCard.color == currentTopCard.color || playedCard.color == CardColor.WILD
+        if (playedCard.type == CardType.WILD || playedCard.type == CardType.WILD_DRAW_FOUR) {
+            return true
+        }
+
+        if (gs.chosenColor != null && gs.chosenColor != CardColor.WILD) {
+            return playedCard.color == gs.chosenColor
+        }
+
+        val colorMatch = playedCard.color == currentTopCard.color
         val typeMatch = playedCard.type == currentTopCard.type && playedCard.type != CardType.NUMBER
-        val numberMatch = playedCard.type == CardType.NUMBER && playedCard.number == currentTopCard.number
+        val numberMatch = (playedCard.type == CardType.NUMBER && currentTopCard.type == CardType.NUMBER) &&
+                (playedCard.number == currentTopCard.number)
 
-        val isWild = playedCard.type == CardType.WILD || playedCard.type == CardType.WILD_DRAW_FOUR
-
-        return colorMatch || typeMatch || numberMatch || isWild
+        return colorMatch || typeMatch || numberMatch
     }
 
     fun getOpponentsInOrder(): List<PlayerDisplayInfo> {

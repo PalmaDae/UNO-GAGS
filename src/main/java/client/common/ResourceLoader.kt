@@ -7,21 +7,25 @@ object ResourceLoader {
     private const val RESOURCE_BASE = "/images/cards/"
 
     private fun getCardImagePath(card: proto.dto.Card): String {
-        val color = card.color.name
-        val value = card.type.name
+        val type = card.type
+        val color = card.color
 
-        if (value == "BACK") return "${RESOURCE_BASE}back.png"
+        if (type == proto.dto.CardType.BACK) return "${RESOURCE_BASE}back.png"
 
-        val colorDir = if (color == "WILD" || color == "NONE") "wild" else color.lowercase()
+        val colorDir = if (type == proto.dto.CardType.WILD || type == proto.dto.CardType.WILD_DRAW_FOUR) {
+            "wild"
+        } else {
+            color.name.lowercase()
+        }
 
-        val fileName = when (value) {
-            "NUMBER" -> "${card.number}.png"
-            "PLUS_TWO", "DRAW_TWO" -> "+2.png"
-            "REVERSE" -> "reverse.png"
-            "SKIP" -> "skip.png"
-            "WILD_DRAW_FOUR" -> "+4.png"
-            "WILD" -> "wildcard.png"
-            else -> "${value.lowercase()}.png"
+        val fileName = when (type) {
+            proto.dto.CardType.NUMBER -> "${card.number}.png"
+            proto.dto.CardType.DRAW_TWO -> "+2.png"
+            proto.dto.CardType.REVERSE -> "reverse.png"
+            proto.dto.CardType.SKIP -> "skip.png"
+            proto.dto.CardType.WILD_DRAW_FOUR -> "+4.png"
+            proto.dto.CardType.WILD -> "wildcard.png"
+            else -> "${type.name.lowercase()}.png"
         }
 
         return "$RESOURCE_BASE$colorDir/$fileName"

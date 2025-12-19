@@ -10,7 +10,8 @@ data class GameState(
     val currentCard: Card?,
     val currentPlayerId: Long,
     val direction: GameDirection,
-    val gamePhase: GamePhase
+    val gamePhase: GamePhase,
+    val chosenColor: CardColor? = null
 ) : Payload
 
 data class PlayerHandUpdate(

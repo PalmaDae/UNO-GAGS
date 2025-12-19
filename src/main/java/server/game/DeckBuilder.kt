@@ -197,6 +197,10 @@ object DeckBuilder {
             return drawPile.removeAt(drawPile.size - 1)
         }
 
+        fun setTopCard(card: Card) {
+            discardPile[discardPile.size - 1] = card
+        }
+
         fun playCard(card: Card?) {
             discardPile.add(card)
         }
