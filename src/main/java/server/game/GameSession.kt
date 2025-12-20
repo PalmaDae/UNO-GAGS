@@ -140,8 +140,7 @@ class GameSession(
 
         applyCardEffect(updatedCard)
 
-        moveToNextPlayer()
-        gamePhase = GamePhase.WAITING_TURN
+        gamePhase = GamePhase.DRAWING_CARD
     }
 
     private fun applyCardEffect(card: Card) {
@@ -192,6 +191,14 @@ class GameSession(
 
         val player: PlayerState = players.get(playerId)!!
         player.addCard(deckPiles.drawCard())
+
+        // Set DRAWING_CARD phase for client synchronization
+        gamePhase = GamePhase.DRAWING_CARD
+    }
+
+    fun finishDrawing(playerId: Long) {
+        check(playerId == this.currentPlayerId) { "Not your turn" }
+        check(gamePhase == GamePhase.DRAWING_CARD) { "Not in DRAWING_CARD phase" }
 
         moveToNextPlayer()
         gamePhase = GamePhase.WAITING_TURN

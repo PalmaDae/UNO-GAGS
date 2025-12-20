@@ -3,6 +3,7 @@ package client.common
 import proto.common.Method
 import proto.common.NetworkMessage
 import proto.dto.Payload
+import server.common.Server
 import java.io.EOFException
 import java.io.IOException
 import java.io.ObjectInputStream
@@ -16,7 +17,7 @@ import java.util.function.Consumer
 
 class NetworkClient(
     private val host: String = "localhost",
-    private val port: Int = 9090
+    private val port: Int = Server.PORT,
 ) {
     private lateinit var socket: Socket
     private lateinit var input: ObjectInputStream

@@ -60,14 +60,14 @@ class GameController(private val stage: Stage) {
 
         playerModel.selectCard(-1)
 
+        updateGamePhase(GamePhase.DRAWING_CARD)
+
         println("[GameController] Color $color sent to server for room $roomId")
     }
 
     fun setOnStateChanged(callback: Runnable?) {
         onStateChanged = callback
     }
-
-
 
     fun handleCardSelection(cardIndex: Int, card: Card) {
         val roomId = getCurrentRoomId() ?: return
@@ -78,18 +78,15 @@ class GameController(private val stage: Stage) {
                 return
             }
 
-            if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR) {
+            if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR)
                 playCard(roomId, null)
-
-                updateGamePhase(GamePhase.CHOOSING_COLOR)
-            } else {
+            else {
                 playCard(roomId, null)
                 playerModel.removeCardLocally(cardIndex)
                 updateGamePhase(GamePhase.WAITING_TURN)
             }
-        } else {
+        } else
             playerModel.selectCard(cardIndex)
-        }
         notifyStateChanged()
     }
 
@@ -237,11 +234,6 @@ class GameController(private val stage: Stage) {
     fun drawCard(roomId: Long) {
         println("[GameController] Попытка взять карту (Draw Card) в комнате $roomId")
 
-        if (gameStateModel.gameState?.gamePhase == GamePhase.CHOOSING_COLOR) {
-            println("[GameController] Сброс фазы выбора цвета перед добором карты")
-            updateGamePhase(GamePhase.WAITING_TURN)
-        }
-
         val request = DrawCardRequest(roomId)
         networkClient.sendMessage(request, Method.DRAW_CARD)
 
@@ -263,6 +255,7 @@ class GameController(private val stage: Stage) {
                 handleRoomCreated(message.payload)
                 handleCreateRoomResponse(message.payload)
             }
+
             is JoinRoomResponse -> handleJoinRoom(message.payload)
             is LobbyUpdate -> handleLobbyUpdate(message.payload)
             is GameState -> handleGameState(message.payload)

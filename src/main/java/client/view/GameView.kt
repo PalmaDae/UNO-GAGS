@@ -331,13 +331,21 @@ class GameView(
         updateBackgroundFromCard(card)
     }
 
-    fun updateGameStatus(phase: GamePhase) {
+    fun updateGameStatus(phase: GamePhase, isMyTurn: Boolean) {
         when (phase) {
             GamePhase.WAITING_TURN -> {
+                drawButton.isDisable = !isMyTurn
+                unoButton.isDisable = !isMyTurn
+            }
+            GamePhase.CHOOSING_COLOR -> {
                 drawButton.isDisable = true
                 unoButton.isDisable = true
             }
-            GamePhase.CHOOSING_COLOR -> {
+            GamePhase.DRAWING_CARD -> {
+                drawButton.isDisable = true
+                unoButton.isDisable = true
+            }
+            GamePhase.FINISHED -> {
                 drawButton.isDisable = true
                 unoButton.isDisable = true
             }
@@ -428,7 +436,7 @@ class GameView(
         }
 
         updateCurrentCard(gameState.currentCard)
-        updateGameStatus(gameState.gamePhase)
+        updateGameStatus(gameState.gamePhase, isMyTurn)
 
         val turnStatus = if (isMyTurn) " ★ YOUR TURN ★" else ""
         gameStatusLabel.text = "Current Player ID: ${gameState.currentPlayerId}$turnStatus"

@@ -288,10 +288,20 @@ class Server : AutoCloseable {
             val session = roomAndSession.component2()
 
             session.drawCard(clientId)
-            connection.sendMessage(OkMessage("Card drawn successfully"))
 
+            // First broadcast: DRAWING_CARD phase
             sendHandUpdates(room)
             broadcastGameState(room)
+
+            // Small delay to let clients see DRAWING_CARD phase
+            Thread.sleep(100)
+
+            session.finishDrawing(clientId)
+
+            // Second broadcast: WAITING_TURN phase
+            broadcastGameState(room)
+
+            connection.sendMessage(OkMessage("Card drawn successfully"))
 
         } catch (e: IllegalStateException) {
             connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
