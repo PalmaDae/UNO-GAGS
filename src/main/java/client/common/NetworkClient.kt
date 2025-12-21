@@ -64,7 +64,9 @@ class NetworkClient(
         running = false
 
         try {
-            socket.takeIf { !it.isClosed }?.close()
+            if (::socket.isInitialized && !socket.isClosed) {
+                socket.close()
+            }
         } catch (e: IOException) {
             System.err.println("[NetworkClient] Error closing socket: ${e.message}")
         }
@@ -153,5 +155,6 @@ class NetworkClient(
         }
     }
 
-    fun isConnected(): Boolean = socket.let { !it.isClosed && running }
+    fun isConnected() = running && ::socket.isInitialized && !socket.isClosed
+
 }

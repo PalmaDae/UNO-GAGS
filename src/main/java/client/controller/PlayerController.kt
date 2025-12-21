@@ -1,9 +1,6 @@
 package client.controller
 
 import javafx.stage.Stage
-import client.view.CreateView
-import client.view.MainMenuView
-import client.view.JoinView
 
 class PlayerController(
     private val stage: Stage,
@@ -11,17 +8,11 @@ class PlayerController(
     private val isJoin: Boolean,
     private val initialPassword: String? = null
 ) {
-    fun backButton() {
-        if (isJoin) {
-            val joinView = JoinView(stage, gameController)
-            stage.scene = joinView.scene
-        } else {
-            val mainView = MainMenuView(stage, gameController)
-            stage.scene = mainView.scene
-        }
+    fun onBackRequested() {
+        // Navigation is handled by the view based on isJoin flag
     }
 
-    fun createPlayer(name: String, avatar: String) {
+    fun onPlayerDataSubmitted(name: String, avatar: String) {
         if (name.isBlank()) {
             System.err.println("Имя не может быть пустым.")
             return
@@ -32,12 +23,12 @@ class PlayerController(
             return
         }
 
-        gameController.setUserData(name,avatar)
+        gameController.setUserData(name, avatar)
 
         if (isJoin) {
             if (initialPassword == null) {
                 System.err.println("Невозможно присоединиться: ID комнаты отсутствует.")
-                backButton()
+                onBackRequested()
                 return
             }
 
@@ -47,9 +38,6 @@ class PlayerController(
                 avatar = avatar,
                 password = initialPassword
             )
-        } else {
-            val createView = CreateView(stage, gameController)
-            stage.scene = createView.scene
         }
     }
 }

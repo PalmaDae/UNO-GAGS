@@ -246,7 +246,15 @@ class Server : AutoCloseable {
             session.setChosenColor(request.chosenColor)
             connection.sendMessage(OkMessage("Color chosen successfully"))
 
+            // First broadcast: DRAWING_CARD phase (clients can show transition)
             sendHandUpdates(room)
+            broadcastGameState(room)
+
+            // Small delay to let clients see DRAWING_CARD phase
+            Thread.sleep(100)
+
+            // Second broadcast: WAITING_TURN phase
+            session.finishColorSelection()
             broadcastGameState(room)
 
         } catch (e: IllegalStateException) {
@@ -382,7 +390,7 @@ class Server : AutoCloseable {
     }
 
     companion object {
-        private const val PORT = 9090
+        const val PORT = 9090
         private val logger = Logger.getLogger(Server::class.java.name)
     }
 }

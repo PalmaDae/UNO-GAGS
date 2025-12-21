@@ -3,14 +3,16 @@ package client.controller
 import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 
-class LobbyController(private val gameController: GameController) {
+class LobbyController(
+    private val gameController: GameController
+) {
+    fun onStartGameRequested() {
+        gameController.startGame(gameController.getCurrentRoomId() ?: return)
+    }
 
-    fun startGame() {
-        val roomId = gameController.getCurrentRoomId()
-        if (roomId != null) {
-            gameController.startGame(roomId)
-            println("Sending StartGame request for room $roomId")
-        }
+    fun onLeaveRequested() {
+        gameController.disconnect()
+        // View переходит в MainMenu
     }
 
     fun copyPassword(password: String) {
@@ -18,7 +20,5 @@ class LobbyController(private val gameController: GameController) {
         val content = ClipboardContent()
         content.putString(password)
         clipboard.setContent(content)
-        println("Room ID copied: $password")
     }
-
 }

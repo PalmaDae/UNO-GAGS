@@ -4,9 +4,18 @@ import client.common.NetworkClient
 import client.model.GameStateModel
 import client.model.PlayerModel
 import client.model.RoomModel
+import client.service.CardPlayService
+import client.service.ColorSelectionService
+import client.service.DrawCardService
+import client.service.GameLogicService
+import client.service.GamePhaseManager
+import client.service.GameStateSync
+import client.view.CreateView
 import client.view.GameView
+import client.view.JoinView
 import client.view.LobbyView
 import client.view.MainMenuView
+import client.view.PlayerView
 import javafx.application.Platform
 import javafx.stage.Stage
 import proto.common.Method
@@ -19,8 +28,19 @@ class GameController(private val stage: Stage) {
     private val playerModel = PlayerModel()
     private val roomModel = RoomModel()
     private val gameStateModel = GameStateModel()
+
+    private val phaseManager = GamePhaseManager()
+    private val gameLogicService = GameLogicService()
+    private val gameStateSync = GameStateSync(gameStateModel, playerModel, phaseManager)
+    private val cardPlayService = CardPlayService(gameLogicService, phaseManager)
+    private val drawCardService = DrawCardService(gameLogicService, phaseManager)
+    private val colorSelectionService = ColorSelectionService(gameLogicService, phaseManager)
+
     private var onStateChanged: Runnable? = null
-    private var onPlayerHandUpdated: ((List<Card>) -> Unit)? = null
+
+    private var pendingJoinPassword: String? = null
+    private var pendingCreateFlow: Boolean = false
+
     private var currentRoomId: Long? = null
     var passwordRoom: String? = null
     var currentUserName: String = "Guest"
@@ -31,93 +51,220 @@ class GameController(private val stage: Stage) {
         networkClient.setMessageListener(::handleMessage)
     }
 
-    fun connect() = networkClient.connect()
+    fun connect(): Boolean = networkClient.connect()
 
     fun disconnect() {
         networkClient.disconnect()
         resetAllModels()
     }
 
-    fun setOnPlayerHandUpdated(callback: ((List<Card>) -> Unit)?) {
-        onPlayerHandUpdated = callback
-    }
-
     fun setUserData(name: String, avatar: String) {
-        this.currentUserName = name
-        this.currentUserAvatar = avatar
+        currentUserName = name
+        currentUserAvatar = avatar
         println("[GameController] User data saved: $name, $avatar")
-    }
-
-    fun closedGame() {
-        val menuView = MainMenuView(stage, gameController = GameController(stage))
-        stage.scene = menuView.scene
-    }
-
-    fun chooseColor(roomId: Long, color: CardColor) {
-        val request = ChooseColorRequest(roomId, color)
-
-        networkClient.sendMessage(request, Method.CHOOSE_COLOR)
-
-        playerModel.selectCard(-1)
-
-        updateGamePhase(GamePhase.DRAWING_CARD)
-
-        println("[GameController] Color $color sent to server for room $roomId")
     }
 
     fun setOnStateChanged(callback: Runnable?) {
         onStateChanged = callback
     }
 
-    fun handleCardSelection(cardIndex: Int, card: Card) {
+    fun closedGame() {
+        val menuView = MainMenuView(stage, this)
+        stage.scene = menuView.scene
+    }
+
+    // =========================
+    // Game actions (Views -> Controller)
+    // =========================
+
+    fun onCardSelected(cardIndex: Int, card: Card) {
         val roomId = getCurrentRoomId() ?: return
 
-        if (playerModel.selectedCardIndex == cardIndex) {
-            if (!canPlayCard(card)) {
-                println("[GameController] Нельзя положить ${card.id}!")
-                return
+        when (
+            val action = cardPlayService.handleCardSelection(
+                cardIndex = cardIndex,
+                card = card,
+                selectedCardIndex = playerModel.selectedCardIndex,
+                gameState = gameStateSync.getCurrentGameState(),
+                myPlayerId = myPlayerId
+            )
+        ) {
+            is CardPlayService.CardPlayAction.SelectCard -> playerModel.selectCard(action.index)
+
+            is CardPlayService.CardPlayAction.PlayCard -> {
+                sendPlayCardRequest(roomId = roomId, cardIndex = action.index, chosenColor = null)
+
+                gameStateSync.syncCardRemoval(action.index)
+                gameStateSync.setLocalPhase(gameLogicService.getPhaseAfterPlayingCard(action.card))
             }
 
-            if (card.type == CardType.WILD || card.type == CardType.WILD_DRAW_FOUR)
-                playCard(roomId, null)
-            else {
-                playCard(roomId, null)
-                playerModel.removeCardLocally(cardIndex)
-                updateGamePhase(GamePhase.WAITING_TURN)
+            is CardPlayService.CardPlayAction.Denied -> {
+                println("[GameController] ${action.reason}")
             }
-        } else
-            playerModel.selectCard(cardIndex)
+        }
+
         notifyStateChanged()
     }
 
+    fun onDrawCardRequested() {
+        val roomId = getCurrentRoomId() ?: return
 
-    private fun updateGamePhase(phase: GamePhase) {
-        gameStateModel.gameState?.let {
-            val updatedState = it.copy(gamePhase = phase)
-            gameStateModel.updateState(updatedState)
-            println("[GameController] Phase changed to: $phase")
+        when (drawCardService.handleDrawCardAttempt(gameStateSync.getCurrentGameState(), myPlayerId)) {
+            is DrawCardService.DrawCardAction.SendDrawRequest -> {
+                sendDrawCardRequest(roomId)
+                gameStateSync.setLocalPhase(drawCardService.getPhaseAfterDrawing())
+                notifyStateChanged()
+            }
+
+            is DrawCardService.DrawCardAction.Denied -> {
+                println("[GameController] Cannot draw card now")
+            }
         }
     }
 
-    private fun canPlayCard(playedCard: Card): Boolean {
-        val gs = gameStateModel.gameState ?: return true
-        val currentTopCard = gs.currentCard ?: return true
+    fun onColorSelected(color: CardColor) {
+        val roomId = getCurrentRoomId() ?: return
 
-        if (playedCard.type == CardType.WILD || playedCard.type == CardType.WILD_DRAW_FOUR) {
-            return true
+        when (colorSelectionService.handleColorSelection(gameStateSync.getCurrentGameState(), myPlayerId, color)) {
+            is ColorSelectionService.ColorSelectionAction.SendColor -> {
+                sendChooseColorRequest(roomId, color)
+                gameStateSync.setLocalPhase(colorSelectionService.getPhaseAfterColorSelection())
+                notifyStateChanged()
+            }
+
+            is ColorSelectionService.ColorSelectionAction.Denied -> {
+                println("[GameController] Cannot choose color now")
+            }
         }
-
-        if (gs.chosenColor != null && gs.chosenColor != CardColor.WILD) {
-            return playedCard.color == gs.chosenColor
-        }
-
-        val colorMatch = playedCard.color == currentTopCard.color
-        val typeMatch = playedCard.type == currentTopCard.type && playedCard.type != CardType.NUMBER
-        val numberMatch = (playedCard.type == CardType.NUMBER && currentTopCard.type == CardType.NUMBER) &&
-                (playedCard.number == currentTopCard.number)
-
-        return colorMatch || typeMatch || numberMatch
     }
+
+    fun onSayUnoRequested() {
+        val roomId = getCurrentRoomId() ?: return
+        val request = SayUnoRequest(roomId)
+        networkClient.sendMessage(request, Method.SAY_UNO)
+    }
+
+    // =========================
+    // Navigation & flow actions (Views -> Controller)
+    // =========================
+
+    fun onCreateGameRequested() {
+        pendingCreateFlow = true
+        pendingJoinPassword = null
+
+        val playerView = PlayerView(stage = stage, gameController = this, isJoin = false)
+        stage.scene = playerView.scene
+    }
+
+    fun onJoinGameRequested() {
+        pendingCreateFlow = false
+        pendingJoinPassword = null
+
+        val joinView = JoinView(stage, this)
+        stage.scene = joinView.scene
+    }
+
+    fun onJoinRequested(roomPassword: String) {
+        val key = roomPassword.trim()
+        if (key.isBlank()) return
+
+        pendingCreateFlow = false
+        pendingJoinPassword = key
+        passwordRoom = key
+
+        val playerView = PlayerView(stage = stage, gameController = this, isJoin = false)
+        stage.scene = playerView.scene
+    }
+
+    fun onPlayerDataSubmitted(name: String, avatar: String) {
+        setUserData(name, avatar)
+
+        val joinPassword = pendingJoinPassword
+        if (joinPassword != null) {
+            pendingJoinPassword = null
+            joinRoom(roomId = null, username = name, avatar = avatar, password = joinPassword)
+            return
+        }
+
+        if (pendingCreateFlow) {
+            pendingCreateFlow = false
+            val createView = CreateView(stage, this)
+            stage.scene = createView.scene
+        }
+    }
+
+    fun onStartGameRequested() {
+        val roomId = getCurrentRoomId() ?: return
+        startGame(roomId)
+    }
+
+    fun onLeaveRequested() {
+        onLeaveGameRequested()
+    }
+
+    fun onLeaveGameRequested() {
+        disconnect()
+        val menuView = MainMenuView(stage, this)
+        stage.scene = menuView.scene
+    }
+
+    fun onCreateLobbyRequested(maxPlayers: Int, allowStuck: Boolean, allowStuckCards: Boolean, infinityDrawing: Boolean) {
+        val password = generatePassword()
+        passwordRoom = password
+
+        createRoom(password, maxPlayers, allowStuck, allowStuckCards, infinityDrawing)
+    }
+
+    fun onBackRequested() {
+        pendingCreateFlow = false
+        pendingJoinPassword = null
+
+        val menuView = MainMenuView(stage, this)
+        stage.scene = menuView.scene
+    }
+
+    fun onExitRequested() {
+        disconnect()
+        stage.close()
+    }
+
+    fun copyPassword(): String = passwordRoom ?: ""
+
+    fun pastePassword(): String = passwordRoom ?: ""
+
+    // =========================
+    // Read-only state for Views
+    // =========================
+
+    fun getCurrentGameState(): GameState? = gameStateSync.getCurrentGameState()
+
+    fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
+
+    fun getCurrentRoomId(): Long? = roomModel.currentRoomId
+
+    fun isMyTurn(): Boolean {
+        val gameState = gameStateSync.getCurrentGameState() ?: return false
+        val myId = myPlayerId ?: return false
+        return gameState.currentPlayerId == myId
+    }
+
+    fun getCurrentPhase(): GamePhase = gameStateSync.getCurrentPhase()
+
+    fun isDrawButtonEnabled(): Boolean = phaseManager.isDrawButtonEnabled(isMyTurn())
+
+    fun isUnoButtonEnabled(): Boolean = phaseManager.isUnoButtonEnabled(isMyTurn())
+
+    fun canInteractWithHand(): Boolean = phaseManager.canInteractWithHand(isMyTurn())
+
+    fun shouldShowColorChooser(): Boolean = phaseManager.shouldShowColorChooser(isMyTurn())
+
+    fun getMyHand(): List<Card> {
+        val handCopy = playerModel.hand.toList()
+        println("[GameController] getMyHand(): ${handCopy.size} cards (thread=${Thread.currentThread().name})")
+        return handCopy
+    }
+
+    fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
 
     fun getOpponentsInOrder(): List<PlayerDisplayInfo> {
         val gameState = getCurrentGameState() ?: return emptyList()
@@ -130,9 +277,7 @@ class GameController(private val stage: Stage) {
         }
 
         val playerIdsInOrder = allPlayersMap.keys.toList()
-
         val myIndex = playerIdsInOrder.indexOf(myPlayerId)
-
         if (myIndex == -1) {
             return emptyList()
         }
@@ -146,23 +291,32 @@ class GameController(private val stage: Stage) {
 
             val gameInfo = allPlayersMap[opponentId] ?: continue
 
-            val displayInfo = PlayerDisplayInfo(
-                userId = opponentId,
-                username = gameInfo.username,
-                cardCount = gameInfo.cardCount,
-                hasUno = gameInfo.hasUno
+            opponentsInOrder.add(
+                PlayerDisplayInfo(
+                    userId = opponentId,
+                    username = gameInfo.username,
+                    cardCount = gameInfo.cardCount,
+                    hasUno = gameInfo.hasUno
+                )
             )
-
-            opponentsInOrder.add(displayInfo)
         }
 
         return opponentsInOrder
     }
 
-    private fun resetAllModels() {
-        playerModel.reset()
-        roomModel.reset()
-        gameStateModel.reset()
+    // =========================
+    // Network actions
+    // =========================
+
+    private fun ensureConnected(): Boolean {
+        if (networkClient.isConnected()) return true
+
+        println("[GameController] Connecting to server...")
+        val ok = connect()
+        if (!ok) {
+            System.err.println("[GameController] Failed to connect")
+        }
+        return ok
     }
 
     fun createRoom(
@@ -172,8 +326,10 @@ class GameController(private val stage: Stage) {
         allowStuckCards: Boolean,
         infinityDrawing: Boolean
     ) {
+        if (!ensureConnected()) return
 
         passwordRoom = password
+
         val request = CreateRoomRequest(
             avatar = currentUserAvatar,
             password = password,
@@ -183,19 +339,13 @@ class GameController(private val stage: Stage) {
             maxPlayers = maxPlayers,
             username = currentUserName
         )
-        println("Sending CreateRoomRequest: $request")
+
+        println("[GameController] Sending CreateRoomRequest: $request")
         networkClient.sendMessage(request, Method.CREATE_ROOM)
     }
 
     fun joinRoom(roomId: Long?, username: String, avatar: String, password: String? = null) {
-        if (!networkClient.isConnected()) {
-            println("Connecting to server...")
-            val success = connect()
-            if (!success) {
-                println("Failed to connect")
-                return
-            }
-        }
+        if (!ensureConnected()) return
 
         val request = JoinRoomRequest(
             roomId = roomId,
@@ -203,6 +353,7 @@ class GameController(private val stage: Stage) {
             username = username,
             avatar = avatar
         )
+
         networkClient.sendMessage(request, Method.JOIN_ROOM_REQUEST)
     }
 
@@ -211,44 +362,40 @@ class GameController(private val stage: Stage) {
         networkClient.sendMessage(request, Method.START_GAME)
     }
 
-    private fun playCard(roomId: Long, chosenColor: CardColor?) {
-        val index = playerModel.selectedCardIndex
-
-        if (index == -1) {
+    private fun sendPlayCardRequest(roomId: Long, cardIndex: Int, chosenColor: CardColor?) {
+        if (cardIndex == -1) {
             System.err.println("[GameController] CANNOT PLAY: No index selected")
             return
         }
 
         val request = PlayCardRequest(
             roomId = roomId,
-            cardIndex = index,
+            cardIndex = cardIndex,
             chosenColor = chosenColor
         )
 
-        println("[Sender] Sending PlayCard: index=$index, color=$chosenColor")
+        println("[Sender] Sending PlayCard: index=$cardIndex, color=$chosenColor")
         networkClient.sendMessage(request, Method.PLAY_CARD)
 
         playerModel.selectCard(-1)
     }
 
-    fun drawCard(roomId: Long) {
-        println("[GameController] Попытка взять карту (Draw Card) в комнате $roomId")
-
+    private fun sendDrawCardRequest(roomId: Long) {
         val request = DrawCardRequest(roomId)
+        println("[GameController] Attempting to draw card in room $roomId")
         networkClient.sendMessage(request, Method.DRAW_CARD)
-
         playerModel.selectCard(-1)
-
-        notifyStateChanged()
     }
 
-    fun sayUno(roomId: Long) {
-        val request = SayUnoRequest(roomId)
-        networkClient.sendMessage(request, Method.SAY_UNO)
+    private fun sendChooseColorRequest(roomId: Long, color: CardColor) {
+        val request = ChooseColorRequest(roomId, color)
+        networkClient.sendMessage(request, Method.CHOOSE_COLOR)
+        playerModel.selectCard(-1)
+        println("[GameController] Color $color sent to server for room $roomId")
     }
 
     private fun handleMessage(message: NetworkMessage) {
-        println("[GameController] Handling payload: ${message::class.simpleName}")
+        println("[GameController] Handling payload: ${message.payload}")
 
         when (message.payload) {
             is CreateRoomResponse -> {
@@ -275,38 +422,42 @@ class GameController(private val stage: Stage) {
 
     fun handleCreateRoomResponse(response: CreateRoomResponse) {
         if (response.isSuccessful) {
-            this.currentRoomId = response.roomId
+            currentRoomId = response.roomId
+            passwordRoom = response.password
 
-            playerModel.username = this.currentUserName
-            playerModel.avatar = this.currentUserAvatar
+            playerModel.username = currentUserName
+            playerModel.avatar = currentUserAvatar
 
             Platform.runLater {
                 val lobbyView = LobbyView(stage, this)
                 stage.scene = lobbyView.scene
             }
         } else {
-            println("No room")
+            println("[GameController] Room creation failed")
         }
     }
-
 
     private fun handleJoinRoom(response: JoinRoomResponse) {
         if (response.isSuccessful) {
             roomModel.joinRoom(response.roomId)
+            currentRoomId = response.roomId
+
             logger.info("Joined room: ${response.roomId}")
 
             Platform.runLater {
                 val lobby = LobbyView(stage, gameController = this)
                 stage.scene = lobby.scene
             }
-        } else
+        } else {
             System.err.println("[GameController] Failed to join room ${response.roomId}")
+        }
 
         notifyStateChanged()
     }
 
     private fun handleLobbyUpdate(update: LobbyUpdate) {
         roomModel.updateLobby(update)
+
         if (myPlayerId == null) {
             val me = update.players.find { it.username == currentUserName }
             if (me != null) {
@@ -321,7 +472,8 @@ class GameController(private val stage: Stage) {
     }
 
     private fun handleGameState(newState: GameState) {
-        gameStateModel.updateState(newState)
+        gameStateSync.updateGameState(newState)
+
         if (myPlayerId == null) {
             val me = newState.players.entries.find { it.value.username == currentUserName }
             if (me != null) {
@@ -341,6 +493,12 @@ class GameController(private val stage: Stage) {
         notifyStateChanged()
     }
 
+    private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
+        gameStateSync.updatePlayerHand(update.hand)
+        playerModel.selectCard(-1)
+        notifyStateChanged()
+    }
+
     private fun handleError(error: ErrorMessage) {
         System.err.println("[GameController] Error from server: ${error.message}")
     }
@@ -355,32 +513,15 @@ class GameController(private val stage: Stage) {
         }
     }
 
-    private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
-        val localCount = playerModel.hand.size
-        val serverCount = update.hand.size
-
-        if (gameStateModel.gameState?.gamePhase == GamePhase.WAITING_TURN && serverCount > localCount) {
-            println("[DEBUG] Блокировка: Сервер прислал старую руку ($serverCount), оставляем локальную ($localCount)")
-            return
-        }
-
-        playerModel.updateHand(update.hand)
-        playerModel.selectCard(-1)
-        notifyStateChanged()
+    private fun resetAllModels() {
+        gameStateSync.reset()
+        roomModel.reset()
     }
 
-
-    fun getCurrentGameState(): GameState? = gameStateModel.gameState
-    fun getCurrentLobbyState(): LobbyUpdate? = roomModel.lobbyState
-    fun getCurrentRoomId(): Long? = roomModel.currentRoomId
-
-    fun getMyHand(): List<Card> {
-        val handCopy = playerModel.hand.toList()
-        println("[GameController] getMyHand(): ${handCopy.size} cards (thread=${Thread.currentThread().name})")
-        return handCopy
+    private fun generatePassword(): String {
+        val chars = "0123456789"
+        return (1..5).map { chars.random() }.joinToString("")
     }
-
-    fun getSelectedCardIndex(): Int = playerModel.selectedCardIndex
 
     companion object {
         private val logger = Logger.getLogger(GameController::class.java.name)

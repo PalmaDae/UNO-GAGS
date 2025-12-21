@@ -263,19 +263,15 @@ class GameView(
     }
 
     private fun handleDrawCard() {
-        gameController.getCurrentRoomId()?.let { roomId ->
-            gameController.drawCard(roomId)
-        }
+        gameController.onDrawCardRequested()
     }
 
     private fun handleSayUno() {
-        gameController.getCurrentRoomId()?.let { roomId ->
-            gameController.sayUno(roomId)
-        }
+        gameController.onSayUnoRequested()
     }
 
     private fun handleCardClick(cardIndex: Int, card: Card) {
-        gameController.handleCardSelection(cardIndex, card)
+        gameController.onCardSelected(cardIndex, card)
     }
 
     private fun renderPlayerHand(hand: List<Card>) {
@@ -331,7 +327,7 @@ class GameView(
         updateBackgroundFromCard(card)
     }
 
-    fun updateGameStatus(phase: GamePhase, isMyTurn: Boolean) {
+    private fun updateGameStatus(phase: GamePhase, isMyTurn: Boolean) {
         when (phase) {
             GamePhase.WAITING_TURN -> {
                 drawButton.isDisable = !isMyTurn
@@ -348,10 +344,6 @@ class GameView(
             GamePhase.FINISHED -> {
                 drawButton.isDisable = true
                 unoButton.isDisable = true
-            }
-            else -> {
-                drawButton.isDisable = false
-                unoButton.isDisable = false
             }
         }
     }
@@ -378,10 +370,8 @@ class GameView(
                 val btn = Button(color.name).apply {
                     style = "-fx-background-color: ${ResourceLoader.toCssColor(color)}; -fx-text-fill: black;"
                     setOnAction {
-                        gameController.getCurrentRoomId()?.let { roomId ->
-                            gameController.chooseColor(roomId, color)
-                            chooserStage.close()
-                        }
+                        gameController.onColorSelected(color)
+                        chooserStage.close()
                     }
                 }
                 children.add(btn)
@@ -427,14 +417,6 @@ class GameView(
 
         val isMyTurn = gameState.currentPlayerId == myPlayerId
 
-        if (isMyTurn && gameState.gamePhase == GamePhase.CHOOSING_COLOR) {
-            if (!isColorChooserShowing) {
-                isColorChooserShowing = true
-                showColorChooser(true)
-                isColorChooserShowing = false
-            }
-        }
-
         updateCurrentCard(gameState.currentCard)
         updateGameStatus(gameState.gamePhase, isMyTurn)
 
@@ -442,6 +424,19 @@ class GameView(
         gameStatusLabel.text = "Current Player ID: ${gameState.currentPlayerId}$turnStatus"
         if (isMyTurn) gameStatusLabel.style = "-fx-text-fill: #FFD700; -fx-font-weight: bold;"
         else gameStatusLabel.style = "-fx-text-fill: white;"
+
+        val shouldShowChooser = gameController.shouldShowColorChooser()
+        if (!shouldShowChooser) {
+            isColorChooserShowing = false
+        } else if (!isColorChooserShowing) {
+            isColorChooserShowing = true
+            try {
+                val isWildCard = gameState.currentCard?.type == CardType.WILD
+                showColorChooser(isWildCard)
+            } finally {
+                isColorChooserShowing = false
+            }
+        }
 
         renderOpponents(gameController.getOpponentsInOrder())
         renderPlayerHand(myHand)

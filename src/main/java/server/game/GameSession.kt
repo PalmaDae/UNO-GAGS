@@ -160,7 +160,7 @@ class GameSession(
 
             CardType.DRAW_TWO -> {
                 moveToNextPlayer()
-                val drawTwoTarget: PlayerState = players.get(this.currentPlayerId)!!
+                val drawTwoTarget: PlayerState = players[this.currentPlayerId]!!
                 drawTwoTarget.addCard(deckPiles.drawCard())
                 drawTwoTarget.addCard(deckPiles.drawCard())
                 moveToNextPlayer()
@@ -204,8 +204,18 @@ class GameSession(
         gamePhase = GamePhase.WAITING_TURN
     }
 
+    fun finishColorSelection() {
+        check(gamePhase == GamePhase.DRAWING_CARD) { "Not in DRAWING_CARD phase" }
+
+        if (currentCard.type == CardType.WILD) {
+            moveToNextPlayer()
+        }
+
+        gamePhase = GamePhase.WAITING_TURN
+    }
+
     fun sayUno(playerId: Long) {
-        val player: PlayerState = players.get(playerId)!!
+        val player = players[playerId]!!
         requireNotNull(player) { "Player not found: $playerId" }
 
         player.declareUno()

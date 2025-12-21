@@ -3,25 +3,24 @@ package client.view
 import client.common.ResourceLoader
 import client.config.StageConfig
 import client.controller.GameController
-import client.controller.LobbyController
 import javafx.application.Platform
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.Label
 import javafx.scene.control.TextField
+import javafx.scene.input.Clipboard
+import javafx.scene.input.ClipboardContent
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 import proto.dto.PlayerInfo
 
 class LobbyView(
-    private val stage: Stage,
+    stage: Stage,
     private val gameController: GameController
 ) {
     var scene: Scene
-    private val controller = LobbyController(gameController)
-
     private val passwordField = TextField().apply {
         isEditable = false
         alignment = Pos.CENTER
@@ -33,15 +32,11 @@ class LobbyView(
     private val playersBox = VBox(8.0).apply { alignment = Pos.CENTER }
 
     private val startGameButton = Button("Start game").apply {
-        setOnAction { controller.startGame() }
-        isDisable = true
+        setOnAction { gameController.onStartGameRequested() }
     }
 
     private val leaveButton = Button("Leave Lobby").apply {
-        setOnAction {
-            gameController.disconnect()
-            stage.scene = MainMenuView(stage, gameController).scene
-        }
+        setOnAction { gameController.onLeaveRequested() }
     }
 
     init {
@@ -52,7 +47,15 @@ class LobbyView(
         }
 
         val copyButton = Button("Copy").apply {
-            setOnAction { controller.copyPassword(passwordField.text) }
+            setOnAction {
+                val password = gameController.copyPassword()
+                passwordField.text = password
+
+                val clipboard = Clipboard.getSystemClipboard()
+                val content = ClipboardContent()
+                content.putString(password)
+                clipboard.setContent(content)
+            }
         }
 
         val passwordBox = HBox(10.0, passwordField, copyButton).apply {
@@ -78,19 +81,12 @@ class LobbyView(
         updateLobbyView()
     }
 
-    private fun updateLobbyView() {
+    fun updateLobbyView() {
         val lobbyState = gameController.getCurrentLobbyState()
-
         val currentPlayers = lobbyState?.players ?: emptyList()
-        val myName = gameController.currentUserName
-
-        val isHost = currentPlayers.any { it.username == myName && it.isOwner }
 
         updateRoomStatus(gameController.passwordRoom ?: "")
         updatePlayerList(currentPlayers)
-
-        startGameButton.isVisible = isHost
-        startGameButton.isDisable = currentPlayers.size < 2
     }
 
     private fun updatePlayerList(players: List<PlayerInfo>) {

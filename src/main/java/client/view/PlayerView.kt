@@ -1,49 +1,36 @@
 package client.view
 
 import client.common.ResourceLoader
+import client.config.StageConfig
 import client.controller.GameController
-import client.controller.PlayerController
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.control.TextField
+import javafx.scene.control.ToggleButton
 import javafx.scene.control.ToggleGroup
+import javafx.scene.image.ImageView
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
-import javafx.scene.paint.Color
-import javafx.scene.shape.Rectangle
 import javafx.stage.Stage
-import client.config.StageConfig
-import javafx.scene.control.ToggleButton
-import javafx.scene.image.ImageView
 
 class PlayerView(
-    private val stage: Stage,
-    private val gameController: GameController,
-    private val isJoin: Boolean,
-    private val initialPassword: String? = null
+    stage: Stage,
+    isJoin: Boolean,
+    private val gameController: GameController
 ) {
-    private val playerController = PlayerController(
-        stage,
-        gameController,
-        isJoin,
-        initialPassword
-    )
+    var scene: Scene
 
-    lateinit var scene: Scene
-
-    val toggleGroup = ToggleGroup()
+    private var nameField: TextField = TextField().apply {
+        promptText = "Place your name here"
+        prefWidth = 220.0
+        maxWidth = 220.0
+        minWidth = 220.0
+        styleClass.add("uno-input")
+    }
+    private var avatarGroup: ToggleGroup = ToggleGroup()
 
     init {
-        val nameField = TextField().apply {
-            promptText = "Place your name here"
-            prefWidth = 220.0
-            maxWidth = 220.0
-            minWidth = 220.0
-            styleClass.add("uno-input")
-        }
-
-        val avatarGroup = ToggleGroup()
         val avatarsBox = HBox(15.0).apply {
             alignment = Pos.CENTER
             style = "-fx-padding: 10;"
@@ -76,12 +63,12 @@ class PlayerView(
                 val avatarFileName = selectedToggle?.userData as? String ?: "avatar1.jpg"
 
                 if (name.isNotBlank()) {
-                    playerController.createPlayer(name, avatarFileName)
+                    gameController.onPlayerDataSubmitted(name, avatarFileName)
                 }
             }
         }
 
-        val backButton = Button("Back").apply { setOnAction { playerController.backButton() } }
+        val backButton = Button("Back").apply { setOnAction { gameController.onBackRequested() } }
 
         val root = VBox(16.0, nameField, avatarsBox, createButton, backButton).apply {
             alignment = Pos.CENTER

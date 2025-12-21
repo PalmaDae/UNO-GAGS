@@ -1,37 +1,40 @@
 package client.view
 
-import client.controller.MainMenuController
+import client.config.StageConfig
+import client.controller.GameController
 import javafx.geometry.Pos
 import javafx.scene.Scene
 import javafx.scene.control.Button
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
-import client.config.StageConfig
-import client.controller.GameController
 
-class MainMenuView(private val stage: Stage, private val gameController: GameController) {
-    private val controller = MainMenuController(stage, gameController)
-    lateinit var scene: Scene
+class MainMenuView(
+    stage: Stage,
+    private val gameController: GameController
+) {
+    var scene: Scene
 
     init {
+        val createButton = Button("Create").apply {
+            setOnAction { gameController.onCreateGameRequested() }
+        }
 
-        val createButton = Button("Create").apply { setOnAction {controller.createButton()} }
-        val joinButton = Button("Join").apply { setOnAction {controller.joinButton()} }
-        val exitButton = Button("Exit").apply {setOnAction {controller.exitButton()}}
+        val joinButton = Button("Join").apply {
+            setOnAction { gameController.onJoinGameRequested() }
+        }
+
+        val exitButton = Button("Exit").apply {
+            setOnAction { gameController.onExitRequested() }
+        }
 
         listOf(createButton, joinButton, exitButton).forEach { it.prefWidth = 200.0 }
 
-        val root = VBox(16.0);
-
-        root.children.addAll(createButton, joinButton,  exitButton)
-        root.alignment = Pos.CENTER
+        val root = VBox(16.0).apply {
+            children.addAll(createButton, joinButton, exitButton)
+            alignment = Pos.CENTER
+        }
 
         scene = Scene(root, StageConfig.getWidth(stage), StageConfig.getHeight(stage))
         scene.stylesheets.add(javaClass.getResource("/css/style.css").toExternalForm())
-
-        stage.scene = scene;
-        stage.title = "Main Menu"
-        stage.show()
     }
-
 }

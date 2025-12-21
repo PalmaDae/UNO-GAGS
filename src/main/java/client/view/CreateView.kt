@@ -1,23 +1,24 @@
 package client.view
 
 import client.config.StageConfig
-import client.controller.CreateController
 import client.controller.GameController
 import javafx.geometry.Insets
 import javafx.geometry.Pos
 import javafx.scene.Scene
-import javafx.scene.control.*
+import javafx.scene.control.Button
+import javafx.scene.control.CheckBox
+import javafx.scene.control.Label
+import javafx.scene.control.Separator
+import javafx.scene.control.Spinner
 import javafx.scene.layout.HBox
 import javafx.scene.layout.VBox
 import javafx.stage.Stage
 
 class CreateView(
     stage: Stage,
-    gameController: GameController
+    private val gameController: GameController
 ) {
-    private val controller = CreateController(stage, gameController)
-    lateinit var scene: Scene
-
+    var scene: Scene
     private val maxPlayersSpinner = Spinner<Int>(2, 4, 4)
 
     init {
@@ -26,16 +27,16 @@ class CreateView(
         val rule3 = CheckBox("Allow Stuck")
 
         val cancelButton = Button("Cancel").apply {
-            setOnAction { controller.backButton() }
+            setOnAction { gameController.onBackRequested() }
         }
 
         val createLobbyButton = Button("Create Lobby").apply {
             setOnAction {
-                controller.createLobby(
+                gameController.onCreateLobbyRequested(
                     maxPlayers = maxPlayersSpinner.value,
                     allowStuck = rule1.isSelected,
                     allowStuckCards = rule3.isSelected,
-                    infinityDrawing = rule1.isSelected,
+                    infinityDrawing = rule2.isSelected
                 )
             }
         }
@@ -50,10 +51,12 @@ class CreateView(
             alignment = Pos.CENTER
             style = "-fx-padding: 24;"
             children.addAll(
-                Label("Create New Room (Defaults Used)"),
+                Label("Create New Room"),
                 maxPlayersBox,
                 Separator(),
-                rule1, rule2, rule3,
+                rule1,
+                rule2,
+                rule3,
                 createLobbyButton,
                 cancelButton
             )
