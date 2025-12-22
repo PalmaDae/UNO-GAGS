@@ -76,7 +76,7 @@ class Server : AutoCloseable {
             )
         }.toMutableList()
 
-        val gameSession = GameSession(request.roomId, initialPlayerStates)
+        val gameSession = GameSession(request.roomId, initialPlayerStates, false)
         room.gameSession = gameSession
 
         room.gameStarted = true
@@ -111,7 +111,7 @@ class Server : AutoCloseable {
             val playerState = session.players[playerId]
 
             if (playerState != null) {
-                val update = PlayerHandUpdate(playerState.hand)
+                val update = PlayerHandUpdate(playerState.hand.toList())
 
                 room.players.firstOrNull { it.id == playerId }?.connection?.sendMessage(update)
             } else {
@@ -135,10 +135,25 @@ class Server : AutoCloseable {
         }
     }
 
+    private fun handleFinishDrawing(connection: Connection, clientId: Long, request: FinishDrawingRequest) {
+        val roomAndSession = commonHandle(connection, clientId, request, true) ?: return
+        val room = roomAndSession.first
+        val session = roomAndSession.second
+
+        try {
+            session.finishDrawing(clientId)
+            broadcastGameState(room)
+            connection.sendMessage(OkMessage("Turn finished"))
+        } catch (e: Exception) {
+            connection.sendMessage(ErrorMessage(e.message ?: "Error finishing drawing"))
+        }
+    }
+
     private fun processPayload(connection: Connection, clientId: Long, payload: Payload) {
         try {
             when (payload) {
                 is CreateRoomRequest -> handleCreateRoom(connection, clientId, payload)
+                is FinishDrawingRequest -> handleFinishDrawing(connection, clientId, payload)
                 is JoinRoomRequest -> handleJoinRoom(connection, clientId, payload)
                 is StartGameRequest -> handleStartGame(connection, clientId, payload)
                 is PlayCardRequest -> handlePlayCard(connection, clientId, payload)
@@ -239,31 +254,20 @@ class Server : AutoCloseable {
     }
 
     private fun handleChooseColor(connection: Connection, clientId: Long, request: ChooseColorRequest) {
-        val roomAndSession = commonHandle(connection, clientId, request, true)
-        if (roomAndSession == null) return
+        val roomAndSession = commonHandle(connection, clientId, request, true) ?: return
+        val room = roomAndSession.first
+        val session = roomAndSession.second
 
         try {
-            val room = roomAndSession.component1()
-            val session = roomAndSession.component2()
-
             session.setChosenColor(request.chosenColor)
-            connection.sendMessage(OkMessage("Color chosen successfully"))
 
-            // First broadcast: DRAWING_CARD phase (clients can show transition)
+            session.finishColorSelection()
+
             sendHandUpdates(room)
             broadcastGameState(room)
 
-            // Small delay to let clients see DRAWING_CARD phase
-            Thread.sleep(100)
-
-            // Second broadcast: WAITING_TURN phase
-            session.finishColorSelection()
-            broadcastGameState(room)
-
-        } catch (e: IllegalStateException) {
-            connection.sendMessage(ErrorMessage(e.message ?: "Invalid color choice"))
+            connection.sendMessage(OkMessage("Color chosen successfully"))
         } catch (e: Exception) {
-            logger.warning("Error choosing color: ${e.message}")
             connection.sendMessage(ErrorMessage("Server error during color choice"))
         }
     }
@@ -291,31 +295,19 @@ class Server : AutoCloseable {
     }
 
     private fun handleDrawCard(connection: Connection, clientId: Long, request: DrawCardRequest) {
-        val roomAndSession = commonHandle(connection, clientId, request, true)
-        if (roomAndSession == null) return
+        val roomAndSession = commonHandle(connection, clientId, request, true) ?: return
+        val room = roomAndSession.first
+        val session = roomAndSession.second
 
         try {
-            val room = roomAndSession.component1()
-            val session = roomAndSession.component2()
-
             session.drawCard(clientId)
-
-            // First broadcast: DRAWING_CARD phase
-            sendHandUpdates(room)
-            broadcastGameState(room)
-
-            // Small delay to let clients see DRAWING_CARD phase
-            Thread.sleep(100)
 
             session.finishDrawing(clientId)
 
-            // Second broadcast: WAITING_TURN phase
+            sendHandUpdates(room)
             broadcastGameState(room)
 
-            connection.sendMessage(OkMessage("Card drawn successfully"))
-
-        } catch (e: IllegalStateException) {
-            connection.sendMessage(ErrorMessage(e.message ?: "Invalid move"))
+            connection.sendMessage(OkMessage("Card drawn, turn passed"))
         } catch (e: Exception) {
             logger.warning("Error drawing card: ${e.message}")
             connection.sendMessage(ErrorMessage("Server error during draw card"))

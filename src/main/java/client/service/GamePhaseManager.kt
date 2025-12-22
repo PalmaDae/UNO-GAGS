@@ -37,11 +37,11 @@ class GamePhaseManager(
 
 
     fun isUnoButtonEnabled(isMyTurn: Boolean) =
-        isMyTurn && phase == GamePhase.WAITING_TURN
+        isMyTurn && (phase == GamePhase.WAITING_TURN || phase == GamePhase.DRAWING_CARD)
 
 
     fun canInteractWithHand(isMyTurn: Boolean) =
-        isMyTurn && phase == GamePhase.WAITING_TURN
+        isMyTurn && (phase == GamePhase.WAITING_TURN || phase == GamePhase.DRAWING_CARD)
 
 
     fun shouldShowColorChooser(isMyTurn: Boolean) =

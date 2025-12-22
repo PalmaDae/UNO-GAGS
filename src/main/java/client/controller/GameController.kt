@@ -308,6 +308,15 @@ class GameController(private val stage: Stage) {
     // Network actions
     // =========================
 
+    fun onSkipTurnRequested() {
+        val roomId = getCurrentRoomId() ?: return
+
+        val request = FinishDrawingRequest(roomId)
+
+        println("[GameController] Skipping turn in room $roomId")
+        networkClient.sendMessage(request, Method.FINISH_DRAWING)
+    }
+
     private fun ensureConnected(): Boolean {
         if (networkClient.isConnected()) return true
 
@@ -495,15 +504,17 @@ class GameController(private val stage: Stage) {
                 val gameView = GameView(stage, this)
                 stage.scene = gameView.scene
             }
+            notifyStateChanged()
         }
-
-        notifyStateChanged()
     }
 
     private fun handlePlayerHandUpdate(update: PlayerHandUpdate) {
         gameStateSync.updatePlayerHand(update.hand)
         playerModel.selectCard(-1)
-        notifyStateChanged()
+
+        Platform.runLater {
+            notifyStateChanged()
+        }
     }
 
     private fun handleError(error: ErrorMessage) {

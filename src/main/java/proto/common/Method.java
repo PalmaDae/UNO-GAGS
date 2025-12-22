@@ -23,6 +23,7 @@ public enum Method {
     SAY_UNO,
     GAME_CHAT,
     CHOOSE_COLOR,
+    FINISH_DRAWING,
 
     // SYSTEM
     PING,

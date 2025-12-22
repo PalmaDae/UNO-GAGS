@@ -5,7 +5,8 @@ import server.game.DeckBuilder.DeckPiles
 
 class GameSession(
     val roomId: Long,
-    initialPlayers: MutableList<PlayerState>
+    initialPlayers: MutableList<PlayerState>,
+    val infinityDrawing: Boolean
 ) {
     internal val players = HashMap<Long?, PlayerState>()
     private val deckPiles: DeckPiles = DeckBuilder.createDeckPiles()
@@ -188,12 +189,21 @@ class GameSession(
 
     fun drawCard(playerId: Long) {
         check(playerId == this.currentPlayerId) { "Not your turn" }
+        val player = players[playerId]!!
 
-        val player: PlayerState = players.get(playerId)!!
-        player.addCard(deckPiles.drawCard())
+        val drawnCard = deckPiles.drawCard()
+        player.addCard(drawnCard)
 
-        // Set DRAWING_CARD phase for client synchronization
-        gamePhase = GamePhase.DRAWING_CARD
+        if (!infinityDrawing) {
+
+            gamePhase = GamePhase.DRAWING_CARD
+        } else {
+            if (canPlayCard(drawnCard!!)) {
+                gamePhase = GamePhase.DRAWING_CARD
+            } else {
+                gamePhase = GamePhase.WAITING_TURN
+            }
+        }
     }
 
     fun finishDrawing(playerId: Long) {

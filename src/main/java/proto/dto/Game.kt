@@ -49,6 +49,10 @@ data class DrawCardRequest(
     override val roomId: Long
 ) : Payload, GameRequest
 
+data class FinishDrawingRequest(
+    override val roomId: Long
+) : Payload, GameRequest
+
 data class PlayCardRequest(
     override val roomId: Long,
     val cardIndex: Int,           // Индекс карты в руке

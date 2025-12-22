@@ -49,5 +49,5 @@ class GameLogicService {
     fun getPhaseAfterPlayingCard(card: Card) =
         if (requiresColorSelection(card)) GamePhase.CHOOSING_COLOR else GamePhase.WAITING_TURN
 
-    fun getPhaseAfterDrawing(): GamePhase = GamePhase.DRAWING_CARD
+    fun getPhaseAfterDrawing(): GamePhase = GamePhase.WAITING_TURN
 }
