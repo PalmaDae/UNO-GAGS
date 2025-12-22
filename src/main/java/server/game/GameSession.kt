@@ -54,7 +54,7 @@ class GameSession(
             players.put(player.playerId, player)
         }
 
-        this.playerOrder = ArrayList<Long?>(players.keys)
+        this.playerOrder = players.keys.filterNotNull().sorted().toMutableList()
 
         dealInitialCards()
     }

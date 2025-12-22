@@ -167,11 +167,16 @@ object DeckBuilder {
 
     fun createDeckPiles(): DeckPiles {
         val fullDeck = createStandardDeck()
+        val firstValidIndex = fullDeck.indexOfFirst { it?.color != CardColor.WILD }
 
-        val drawPile = ArrayList(fullDeck.subList(1, fullDeck.size))
+        val startIndex = if (firstValidIndex != -1) firstValidIndex else 0
 
+        val startingCard = fullDeck.removeAt(startIndex)
+
+        val drawPile = ArrayList(fullDeck)
         val discardPile = ArrayList<Card?>()
-        discardPile.add(fullDeck[0])
+
+        discardPile.add(startingCard)
 
         return DeckPiles(drawPile, discardPile)
     }
