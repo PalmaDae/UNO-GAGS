@@ -55,7 +55,10 @@ class Server : AutoCloseable {
             return
         }
 
+        logger.info("Start request from client #$clientId. Room creator is #${room.creatorId}")
+
         if (room.creatorId != clientId) {
+            logger.warning("Access denied: Client #$clientId is not the owner of room ${room.id}")
             connection.sendMessage(ErrorMessage("Only creator can start game"))
             return
         }

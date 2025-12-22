@@ -87,6 +87,10 @@ class LobbyView(
 
         updateRoomStatus(gameController.passwordRoom ?: "")
         updatePlayerList(currentPlayers)
+
+        val isOwner = gameController.checkIfIAmOwner()
+        startGameButton.isVisible = isOwner
+        startGameButton.isManaged = isOwner
     }
 
     private fun updatePlayerList(players: List<PlayerInfo>) {

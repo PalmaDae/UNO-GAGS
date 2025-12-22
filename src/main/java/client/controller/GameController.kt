@@ -344,6 +344,13 @@ class GameController(private val stage: Stage) {
         networkClient.sendMessage(request, Method.CREATE_ROOM)
     }
 
+    fun checkIfIAmOwner(): Boolean {
+        val lobby = roomModel.lobbyState ?: return false
+        val myId = myPlayerId ?: return false
+        val me = lobby.players.find { it.userId == myId }
+        return me?.isOwner ?: false
+    }
+
     fun joinRoom(roomId: Long?, username: String, avatar: String, password: String? = null) {
         if (!ensureConnected()) return
 
