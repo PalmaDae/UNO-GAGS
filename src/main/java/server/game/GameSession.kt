@@ -160,19 +160,20 @@ class GameSession(
             }
 
             CardType.DRAW_TWO -> {
-                moveToNextPlayer()
-                val drawTwoTarget: PlayerState = players[this.currentPlayerId]!!
-                drawTwoTarget.addCard(deckPiles.drawCard())
-                drawTwoTarget.addCard(deckPiles.drawCard())
+                val victimId = playerOrder[getNextIndex()]!!
+                val victim = players[victimId]!!
+
+                repeat(2) { victim.addCard(deckPiles.drawCard()) }
+
                 moveToNextPlayer()
             }
 
             CardType.WILD_DRAW_FOUR -> {
-                moveToNextPlayer()
-                val drawFourTarget: PlayerState = players.get(this.currentPlayerId)!!
-                repeat(4) {
-                    drawFourTarget.addCard(deckPiles.drawCard())
-                }
+                val victimId = playerOrder[getNextIndex()]!!
+                val victim = players[victimId]!!
+
+                repeat(4) { victim.addCard(deckPiles.drawCard()) }
+
                 moveToNextPlayer()
             }
 
@@ -229,6 +230,13 @@ class GameSession(
         requireNotNull(player) { "Player not found: $playerId" }
 
         player.declareUno()
+    }
+
+    private fun getNextIndex(): Int {
+        return if (direction == GameDirection.CLOCKWISE)
+            (currentPlayerIndex + 1) % playerOrder.size
+        else
+            (currentPlayerIndex - 1 + playerOrder.size) % playerOrder.size
     }
 
 }
