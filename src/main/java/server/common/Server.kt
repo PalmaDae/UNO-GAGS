@@ -1,8 +1,7 @@
 package server.common
 
 import proto.dto.*
-import server.game.GameSession
-import server.game.PlayerState
+import server.game.*
 import java.io.IOException
 import java.net.ServerSocket
 import java.util.concurrent.ConcurrentHashMap
@@ -14,8 +13,8 @@ class Server : AutoCloseable {
 
     private val serverSocket = ServerSocket(PORT)
     private val clientIndex = AtomicInteger(0)
-    private val rooms = ConcurrentHashMap<Long, RoomOnServer>()
-    private val users = ConcurrentHashMap<Long, PlayerOnServer>()
+    private val rooms = ConcurrentHashMap<Long, GameRoom>()
+    private val users = ConcurrentHashMap<Long, PlayerState>()
     private val nextRoomId = AtomicLong(1L)
     private var running = true
 
@@ -70,9 +69,10 @@ class Server : AutoCloseable {
 
         val initialPlayerStates = room.players.map { player ->
             PlayerState(
-                playerId = player.id,
+                id = player.id,
                 username = player.username,
-                avatar = player.avatar
+                avatar = player.avatar,
+                connection = player.connection,
             )
         }.toMutableList()
 
@@ -106,7 +106,7 @@ class Server : AutoCloseable {
         }
     }
 
-    private fun sendHandUpdate(room: RoomOnServer, playerId: Long) {
+    private fun sendHandUpdate(room: GameRoom, playerId: Long) {
         room.gameSession?.let { session ->
             val playerState = session.players[playerId]
 
@@ -120,13 +120,13 @@ class Server : AutoCloseable {
         }
     }
 
-    private fun sendHandUpdates(room: RoomOnServer) {
+    private fun sendHandUpdates(room: GameRoom) {
         room.players.forEach { player ->
             sendHandUpdate(room, player.id)
         }
     }
 
-    private fun broadcastGameState(room: RoomOnServer) {
+    private fun broadcastGameState(room: GameRoom) {
         room.gameSession?.let { session ->
             val gameState = session.gameState
             room.players.forEach { player ->
@@ -176,14 +176,14 @@ class Server : AutoCloseable {
 
     private fun handleCreateRoom(connection: Connection, clientId: Long, request: CreateRoomRequest) {
         val roomId = nextRoomId.getAndIncrement()
-        val room = RoomOnServer(
+        val room = GameRoom(
             id = roomId,
             creatorId = clientId,
             password = request.password
         )
         rooms[roomId] = room
 
-        val user = PlayerOnServer(clientId, request.username, request.avatar, connection)
+        val user = PlayerState(clientId, request.username, request.avatar, connection)
         users[clientId] = user
         room.addPlayer(user)
 
@@ -217,7 +217,7 @@ class Server : AutoCloseable {
         }
 
         val user = users.getOrPut(clientId) {
-            PlayerOnServer(clientId, request.username, request.avatar, connection)
+            PlayerState(clientId, request.username, request.avatar, connection)
         }
 
         room.addPlayer(user)
@@ -234,7 +234,7 @@ class Server : AutoCloseable {
     /*
         общая часть обработки в методах handleChooseColor и handlePlayCard, handleDrawCard и handleSayUno
      */
-    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<RoomOnServer, GameSession>? {
+    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<GameRoom, GameSession>? {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
             return null
@@ -389,27 +389,3 @@ class Server : AutoCloseable {
         private val logger = Logger.getLogger(Server::class.java.name)
     }
 }
-
-data class RoomOnServer(
-    val id: Long,
-    val creatorId: Long,
-    val password: String?,
-    val players: MutableList<PlayerOnServer> = mutableListOf(),
-    var gameStarted: Boolean = false,
-    var gameSession: GameSession? = null
-) {
-    fun addPlayer(user: PlayerOnServer) {
-        if (!players.any { it.id == user.id }) {
-            players.add(user)
-        }
-    }
-
-    fun removePlayer(user: PlayerOnServer) = players.removeAll { it.id == user.id }
-}
-
-data class PlayerOnServer(
-    val id: Long,
-    val username: String,
-    val avatar: String,
-    val connection: Connection
-)

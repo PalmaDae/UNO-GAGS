@@ -1,7 +1,6 @@
-package proto.common;
+package proto.common
 
-public enum Method {
-
+enum class Method {
     // LOBBY
     CREATE_ROOM,
     ROOM_CREATED_SUCCESS,

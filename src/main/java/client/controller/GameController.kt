@@ -248,14 +248,6 @@ class GameController(private val stage: Stage) {
         return gameState.currentPlayerId == myId
     }
 
-    fun getCurrentPhase(): GamePhase = gameStateSync.getCurrentPhase()
-
-    fun isDrawButtonEnabled(): Boolean = phaseManager.isDrawButtonEnabled(isMyTurn())
-
-    fun isUnoButtonEnabled(): Boolean = phaseManager.isUnoButtonEnabled(isMyTurn())
-
-    fun canInteractWithHand(): Boolean = phaseManager.canInteractWithHand(isMyTurn())
-
     fun shouldShowColorChooser(): Boolean = phaseManager.shouldShowColorChooser(isMyTurn())
 
     fun getMyHand(): List<Card> {
@@ -307,15 +299,6 @@ class GameController(private val stage: Stage) {
     // =========================
     // Network actions
     // =========================
-
-    fun onSkipTurnRequested() {
-        val roomId = getCurrentRoomId() ?: return
-
-        val request = FinishDrawingRequest(roomId)
-
-        println("[GameController] Skipping turn in room $roomId")
-        networkClient.sendMessage(request, Method.FINISH_DRAWING)
-    }
 
     private fun ensureConnected(): Boolean {
         if (networkClient.isConnected()) return true
@@ -423,7 +406,7 @@ class GameController(private val stage: Stage) {
             is LobbyUpdate -> handleLobbyUpdate(message.payload)
             is GameState -> handleGameState(message.payload)
             is PlayerHandUpdate -> handlePlayerHandUpdate(message.payload)
-            is ErrorMessage -> handleError(message.payload)
+            is ErrorMessage -> println("[GameController] Error from server: ${message.payload}")
             is OkMessage -> println("[GameController] OK: ${message.payload}")
             is PongMessage -> println("[GameController] Received PONG")
             else -> println("[GameController] Unhandled payload type: ${message.payload::class.simpleName}")
@@ -515,10 +498,6 @@ class GameController(private val stage: Stage) {
         Platform.runLater {
             notifyStateChanged()
         }
-    }
-
-    private fun handleError(error: ErrorMessage) {
-        System.err.println("[GameController] Error from server: ${error.message}")
     }
 
     private fun notifyStateChanged() {

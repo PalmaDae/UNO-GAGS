@@ -1,11 +1,13 @@
 package server.game
 
 import proto.dto.Card
+import server.common.Connection
 
 class PlayerState(
-    val playerId: Long,
-    val username: String?,
-    val avatar: String = "default.png"
+    val id: Long,
+    val username: String,
+    val avatar: String = "default.png",
+    val connection: Connection
 ) {
     var hasDeclaredUno = false
         private set

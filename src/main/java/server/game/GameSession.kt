@@ -5,7 +5,7 @@ import server.game.DeckBuilder.DeckPiles
 
 class GameSession(
     val roomId: Long,
-    initialPlayers: MutableList<PlayerState>,
+    initialPlayers: List<PlayerState>,
     val infinityDrawing: Boolean
 ) {
     internal val players = HashMap<Long?, PlayerState>()
@@ -36,7 +36,7 @@ class GameSession(
                     hasUno = player.hasDeclaredUno,
                     avatar = player.avatar // Мы добавили это ранее
                 )
-                playerInfos.put(player.playerId, info)
+                playerInfos.put(player.id, info)
             }
 
             return GameState(
@@ -52,7 +52,7 @@ class GameSession(
 
     init {
         for (player in initialPlayers) {
-            players.put(player.playerId, player)
+            players.put(player.id, player)
         }
 
         this.playerOrder = players.keys.filterNotNull().sorted().toMutableList()
