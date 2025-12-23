@@ -47,13 +47,4 @@ class CardPlayService(
         println("[CardPlayService] PlayCard: index=$cardIndex, cardId=${card.id}")
         return CardPlayAction.PlayCard(cardIndex, card)
     }
-
-    fun getPlayableCards(hand: List<Card>, gameState: GameState?) =
-        hand.filter { gameLogicService.canPlayCard(it, gameState) }
-
-
-    fun shouldShowColorChooser(gameState: GameState?, myPlayerId: Long?): Boolean {
-        val isMyTurn = gameState != null && myPlayerId != null && gameState.currentPlayerId == myPlayerId
-        return phaseManager.shouldShowColorChooser(isMyTurn)
-    }
 }

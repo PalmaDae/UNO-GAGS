@@ -27,8 +27,6 @@ class PlayerModel {
         selectedCardIndex = -1
     }
 
-    fun hasSelectedCard() = selectedCardIndex in hand.indices
-
     fun removeCardLocally(index: Int) {
         if (index in hand.indices) {
             hand.removeAt(index)

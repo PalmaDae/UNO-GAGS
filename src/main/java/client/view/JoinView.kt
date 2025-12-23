@@ -16,7 +16,7 @@ class JoinView(
 ) {
     var scene: Scene
     private val idField = TextField().apply {
-        promptText = "Введите Ключ комнаты (Room ID)"
+        promptText = "Input RoomKey"
         prefWidth = 220.0
         maxWidth = 220.0
         minWidth = 220.0
@@ -45,7 +45,7 @@ class JoinView(
         val backButton = Button("Back").apply { setOnAction { gameController.onBackRequested() } }
 
         val root = VBox(16.0,
-            Label("Присоединиться по Ключу"),
+            Label("Join by key"),
             idField,
             pasteButton,
             joinButton,

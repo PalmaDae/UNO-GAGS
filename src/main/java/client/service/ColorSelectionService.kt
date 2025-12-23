@@ -38,7 +38,5 @@ class ColorSelectionService(
         }
     }
 
-    fun getAvailableColors(): List<CardColor> = listOf(CardColor.RED, CardColor.BLUE, CardColor.GREEN, CardColor.YELLOW)
-
     fun getPhaseAfterColorSelection(): GamePhase = GamePhase.DRAWING_CARD
 }

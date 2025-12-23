@@ -32,22 +32,11 @@ class GamePhaseManager(
         }
     }
 
-    fun isDrawButtonEnabled(isMyTurn: Boolean) =
-        isMyTurn && phase == GamePhase.WAITING_TURN
-
-
-    fun isUnoButtonEnabled(isMyTurn: Boolean) =
-        isMyTurn && (phase == GamePhase.WAITING_TURN || phase == GamePhase.DRAWING_CARD)
-
-
     fun canInteractWithHand(isMyTurn: Boolean) =
         isMyTurn && (phase == GamePhase.WAITING_TURN || phase == GamePhase.DRAWING_CARD)
 
 
     fun shouldShowColorChooser(isMyTurn: Boolean) =
         isMyTurn && phase == GamePhase.CHOOSING_COLOR
-
-    fun isTransitioning() =
-        phase == GamePhase.DRAWING_CARD || phase == GamePhase.CHOOSING_COLOR
 
 }
