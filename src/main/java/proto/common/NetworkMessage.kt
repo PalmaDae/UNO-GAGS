@@ -3,6 +3,8 @@ package proto.common
 import proto.dto.Payload
 import java.io.Serializable
 
+// протокол общения клиента и сервера в нашей игре
+
 data class NetworkMessage
 @JvmOverloads
 constructor (

@@ -9,13 +9,24 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.logging.Logger
 
+/*
+ * класс, описывающий игровой сервер
+ */
 class Server : AutoCloseable {
+
+    /*
+     * поля: серверный сокет,
+     * потокобезопасный индекс клиента,
+     * потокобезопасные мапы пользователей и игровых комнат,
+     * потокобезопасный индекс комнат, и потокобезопасное свойство запущенности сервера
+     */
 
     private val serverSocket = ServerSocket(PORT)
     private val clientIndex = AtomicInteger(0)
     private val rooms = ConcurrentHashMap<Long, GameRoom>()
     private val users = ConcurrentHashMap<Long, PlayerState>()
     private val nextRoomId = AtomicLong(1L)
+    @Volatile
     private var running = true
 
     init {
@@ -23,19 +34,25 @@ class Server : AutoCloseable {
         logger.info("Server created on port $PORT")
     }
 
+    // метод сервера, вызываемый извне
     fun listen() {
         logger.info("Server started on port ${serverSocket.localPort}")
 
         while (running) {
             try {
+                // блокирующая операция ожидания клиента
                 val socket = serverSocket.accept()
+                // заворачиваем клиента в Connection
                 val connection = Connection(socket)
+                // выдаём уникальный номер клиенту
                 val clientId = clientIndex.incrementAndGet().toLong()
                 logger.info("Client #$clientId connected from ${connection.getRemoteAddress()}")
 
+                // вся обработка клиента идёт в отдельном потоке сервера
                 Thread {
                     handleClient(connection, clientId)
                 }.apply {
+                    // настройка клиентского треда
                     name = "client-$clientId"
                     isDaemon = true
                     start()
@@ -45,6 +62,53 @@ class Server : AutoCloseable {
                     logger.warning("Accept error: ${e.message}")
                 }
             }
+        }
+    }
+
+    // основной метод обработки клиента
+    private fun handleClient(connection: Connection, clientId: Long) {
+        try {
+            while (running) {
+                // клиентская обёртка читает сообщения
+                val payload = connection.readMessage() ?: break
+                logger.info("Client #$clientId received: ${payload::class.simpleName}")
+                // передаём клиентское сообщения следующему методу
+                processPayload(connection, clientId, payload)
+            }
+        } catch (e: Exception) {
+            logger.warning("Client #$clientId error: ${e.message}")
+        } finally {
+            handleDisconnect(connection, clientId)
+            connection.close()
+            logger.info("Client #$clientId disconnected")
+        }
+    }
+
+    // свич-кейс по нагрузке сообщения
+    // делегируем каждый тип сообщения определённому методу
+    private fun processPayload(connection: Connection, clientId: Long, payload: Payload) {
+        try {
+            when (payload) {
+                is CreateRoomRequest -> handleCreateRoom(connection, clientId, payload)
+                is FinishDrawingRequest -> handleFinishDrawing(connection, clientId, payload)
+                is JoinRoomRequest -> handleJoinRoom(connection, clientId, payload)
+                is StartGameRequest -> handleStartGame(connection, clientId, payload)
+                is PlayCardRequest -> handlePlayCard(connection, clientId, payload)
+                is DrawCardRequest -> handleDrawCard(connection, clientId, payload)
+                is ChooseColorRequest -> handleChooseColor(connection, clientId, payload)
+                is SayUnoRequest -> handleSayUno(connection, clientId, payload)
+                is PingMessage -> connection.sendMessage(PongMessage())
+                is PongMessage -> logger.info("Received PONG from client #$clientId")
+                is LeaveRoomRequest -> handleLeaveRoom(connection, clientId, payload)
+                // сервер умеет обрабатывать только верние сообщения, остальное он не понимает
+                else -> {
+                    logger.warning("Unknown message type: ${payload::class.simpleName}")
+                    connection.sendMessage(ErrorMessage("Unknown message type"))
+                }
+            }
+        } catch (e: Exception) {
+            logger.warning("Error processing payload: ${e.message}")
+            connection.sendMessage(ErrorMessage("Server error: ${e.message}"))
         }
     }
 
@@ -90,22 +154,6 @@ class Server : AutoCloseable {
         broadcastRoomUpdate(request.roomId)
     }
 
-    private fun handleClient(connection: Connection, clientId: Long) {
-        try {
-            while (running) {
-                val payload = connection.readMessage() ?: break
-                logger.info("Client #$clientId received: ${payload::class.simpleName}")
-                processPayload(connection, clientId, payload)
-            }
-        } catch (e: Exception) {
-            logger.warning("Client #$clientId error: ${e.message}")
-        } finally {
-            handleDisconnect(connection, clientId)
-            connection.close()
-            logger.info("Client #$clientId disconnected")
-        }
-    }
-
     private fun sendHandUpdate(room: GameRoom, playerId: Long) {
         room.gameSession?.let { session ->
             val playerState = session.players[playerId]
@@ -146,31 +194,6 @@ class Server : AutoCloseable {
             connection.sendMessage(OkMessage("Turn finished"))
         } catch (e: Exception) {
             connection.sendMessage(ErrorMessage(e.message ?: "Error finishing drawing"))
-        }
-    }
-
-    private fun processPayload(connection: Connection, clientId: Long, payload: Payload) {
-        try {
-            when (payload) {
-                is CreateRoomRequest -> handleCreateRoom(connection, clientId, payload)
-                is FinishDrawingRequest -> handleFinishDrawing(connection, clientId, payload)
-                is JoinRoomRequest -> handleJoinRoom(connection, clientId, payload)
-                is StartGameRequest -> handleStartGame(connection, clientId, payload)
-                is PlayCardRequest -> handlePlayCard(connection, clientId, payload)
-                is DrawCardRequest -> handleDrawCard(connection, clientId, payload)
-                is ChooseColorRequest -> handleChooseColor(connection, clientId, payload)
-                is SayUnoRequest -> handleSayUno(connection, clientId, payload)
-                is PingMessage -> connection.sendMessage(PongMessage())
-                is PongMessage -> logger.info("Received PONG from client #$clientId")
-                is LeaveRoomRequest -> handleLeaveRoom(connection, clientId, payload)
-                else -> {
-                    logger.warning("Unknown message type: ${payload::class.simpleName}")
-                    connection.sendMessage(ErrorMessage("Unknown message type"))
-                }
-            }
-        } catch (e: Exception) {
-            logger.warning("Error processing payload: ${e.message}")
-            connection.sendMessage(ErrorMessage("Server error: ${e.message}"))
         }
     }
 
@@ -234,7 +257,12 @@ class Server : AutoCloseable {
     /*
         общая часть обработки в методах handleChooseColor и handlePlayCard, handleDrawCard и handleSayUno
      */
-    private fun commonHandle(connection: Connection, clientId: Long, request: GameRequest, inTurn: Boolean): Pair<GameRoom, GameSession>? {
+    private fun commonHandle(
+        connection: Connection,
+        clientId: Long,
+        request: GameRequest,
+        inTurn: Boolean
+    ): Pair<GameRoom, GameSession>? {
         val room = rooms[request.roomId] ?: run {
             connection.sendMessage(ErrorMessage("Room not found"))
             return null
@@ -379,11 +407,13 @@ class Server : AutoCloseable {
         }
     }
 
+    // реализуем метод, пришедший от AutoClosable
     override fun close() {
         running = false
         serverSocket.close()
     }
 
+    // статические поля класса
     companion object {
         const val PORT = 9090
         private val logger = Logger.getLogger(Server::class.java.name)

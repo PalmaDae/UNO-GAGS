@@ -13,6 +13,8 @@ object Main {
 
         try {
             Server().use { server ->
+                // код, выполняющийся для корректной остановки сервера
+                // на это отводится отдельный поток
                 Runtime.getRuntime().addShutdownHook(Thread {
                     logger.log(Level.INFO, "Shutdown hook triggered. Closing server...")
                     try {
@@ -21,6 +23,7 @@ object Main {
                         logger.log(Level.SEVERE, "Error closing server from shutdown hook", e)
                     }
                 })
+                // запускаем сервер
                 server.listen()
             }
         } catch (e: Exception) {

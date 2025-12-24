@@ -5,14 +5,24 @@ import proto.common.NetworkMessage
 import proto.dto.Payload
 import java.io.*
 import java.net.Socket
+import java.util.concurrent.atomic.AtomicLong
+
+/*
+ * класс-обёртка над клиентом
+ */
 
 class Connection(val socket: Socket) {
+    // потоки ввода-вывода
     private val output = ObjectOutputStream(socket.getOutputStream())
     private val input = ObjectInputStream(socket.getInputStream())
 
+    private val messageId = AtomicLong(0)
+
+    // пытаемся считать сообщение
     fun readMessage(): Payload? {
         return try {
             val message = input.readObject() as? NetworkMessage
+            messageId.set(message?.id ?: messageId.get())
             message?.payload
         } catch (e: Exception) {
             println("[Server] Read Error: ${e.message}")
@@ -20,10 +30,11 @@ class Connection(val socket: Socket) {
         }
     }
 
+    // костыль: клиент отсылает всегда метод OK :/
     fun sendMessage(msg: Payload) {
         try {
             val wrapped = NetworkMessage(
-                id = 0,
+                id = messageId.getAndIncrement(),
                 method = Method.OK,
                 payload = msg
             )
@@ -34,15 +45,13 @@ class Connection(val socket: Socket) {
         }
     }
 
-    fun close() {
+    fun close() =
         try {
             input.close()
             output.close()
             socket.close()
-        } catch (e: IOException) {
-            // Ignore close errors
-        }
-    }
+        } catch (_: IOException) { }
 
+    // строковое представление ip эндпоинта
     fun getRemoteAddress() = socket.remoteSocketAddress.toString()
 }
